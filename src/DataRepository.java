@@ -10,6 +10,14 @@ public class DataRepository {
     private Map<String, Student> students = new HashMap<>();
     private Map<String, Course> courses = new HashMap<>();
     private List<Classroom> classrooms = new ArrayList<>();
+    private List<Slot> slots = new ArrayList<>();
+    public List<Slot> getSlots() {
+        return slots;
+    }
+
+    public void setSlots(List<Slot> slots) {
+        this.slots = slots;
+    }
 
     public void loadAll(Path studentsCSV, Path coursesCSV,
                         Path classroomsCSV, Path registrationsCSV) throws IOException {
