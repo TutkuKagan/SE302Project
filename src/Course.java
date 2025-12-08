@@ -13,4 +13,7 @@ public class Course {
 
     public String getCourseCode() { return courseCode; }
     public List<String> getStudentIds() { return studentIds; }
+    public int getStudentCount() {  return studentIds.size();
+    }
+
 }

@@ -59,6 +59,36 @@ public class DataRepository {
     public Map<String, Student> getStudents() { return students; }
     public List<Classroom> getClassrooms() { return classrooms; }
 
+     //Returns all courses a given student is registered to.
+
+    public List<Course> getCoursesOfStudent(String studentId) {
+        List<Course> result = new ArrayList<>();
+
+        for (Course c : courses.values()) {
+            if (c.getStudentIds().contains(studentId)) {
+                result.add(c);
+            }
+        }
+        return result;
+    }
+    /**
+     * Checks whether two courses conflict by sharing at least one student.
+     */
+    public boolean coursesConflict(String courseA, String courseB) {
+        Course c1 = courses.get(courseA);
+        Course c2 = courses.get(courseB);
+
+        if (c1 == null || c2 == null) return false;
+
+        // Check if there is any shared student ID
+        for (String s : c1.getStudentIds()) {
+            if (c2.getStudentIds().contains(s)) {
+                return true; // Conflict found
+            }
+        }
+        return false; // No shared students
+    }
+
     // =========================
     //   CSV LOAD METOTLARI
     // =========================
