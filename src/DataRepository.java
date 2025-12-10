@@ -230,4 +230,23 @@ public class DataRepository {
 
         return courseMap;
     }
+    public void loadSlots(Path slotConfigCsv) throws IOException {
+        List<String> lines = Files.readAllLines(slotConfigCsv, StandardCharsets.UTF_8);
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
+
+            String[] parts = trimmed.split(";");
+            int numDays = Integer.parseInt(parts[0].trim());
+
+            List<String> timeRanges = new ArrayList<>();
+            for (int i = 1; i < parts.length; i++) {
+                timeRanges.add(parts[i].trim());
+            }
+
+            this.slots = SlotGenerator.generateSlots(numDays, timeRanges);
+            break; // tek satır config kullandığımızı varsayıyoruz
+        }
+    }
+
 }
