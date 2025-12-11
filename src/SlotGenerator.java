@@ -3,8 +3,7 @@ import java.util.List;
 
 public class SlotGenerator {
 
-
-     // Generates all exam slots for the whole exam period.
+    // Generates all exam slots for the whole exam period.
     public static List<Slot> generateSlots(int numDays, List<String> timeRanges) {
         List<Slot> result = new ArrayList<>();
 

@@ -22,7 +22,7 @@ public class DataRepository {
     public void loadAll(Path studentsCSV, Path coursesCSV,
                         Path classroomsCSV, Path registrationsCSV) throws IOException {
 
-        // Önce temizleyelim
+        // Clear them first
         students.clear();
         courses.clear();
         classrooms.clear();
@@ -40,11 +40,11 @@ public class DataRepository {
         // Classrooms
         classrooms = loadClassrooms(classroomsCSV);
 
-        // Registrations (sampleData_AllAttendanceLists formatına göre)
+        // Registrations (in sampleData_AllAttendanceLists format)
         Map<String, Course> regMap = loadCourseRegistrations(registrationsCSV);
 
-        // FR3 ile uyumlu merge:
-        // Eğer registration'da olup courses CSV'de olmayan ders varsa yine de ekliyoruz.
+        // FR3
+        // If there are courses that are registered but not in CSV,we add.
         for (String courseCode : regMap.keySet()) {
             courses.putIfAbsent(courseCode, new Course(courseCode));
             Course target = courses.get(courseCode);
@@ -71,9 +71,9 @@ public class DataRepository {
         }
         return result;
     }
-    /**
-     * Checks whether two courses conflict by sharing at least one student.
-     */
+
+      //Checks whether two courses conflict by sharing at least one student.
+
     public boolean coursesConflict(String courseA, String courseB) {
         Course c1 = courses.get(courseA);
         Course c2 = courses.get(courseB);
@@ -103,7 +103,7 @@ public class DataRepository {
             if (trimmed.isEmpty()) continue;
 
             if (first) {
-                // Örnek: "ALL OF THE STUDENTS IN THE SYSTEM" -> header, atla
+                // For example: "ALL OF THE STUDENTS IN THE SYSTEM" -> header, skip
                 first = false;
                 continue;
             }
@@ -123,7 +123,7 @@ public class DataRepository {
             if (trimmed.isEmpty()) continue;
 
             if (first) {
-                // Örnek: "ALL OF THE COURSES IN THE SYSTEM" -> header, atla
+                // For example: "ALL OF THE COURSES IN THE SYSTEM" -> header, skip
                 first = false;
                 continue;
             }
@@ -143,15 +143,14 @@ public class DataRepository {
             if (trimmed.isEmpty()) continue;
 
             if (first) {
-                // Örnek: "ALL OF THE CLASSROOMS; AND THEIR CAPACITIES IN THE SYSTEM"
-                // -> açıklama satırı, atlıyoruz
+                // Example: "ALL OF THE CLASSROOMS; AND THEIR CAPACITIES IN THE SYSTEM"
                 first = false;
                 continue;
             }
 
             String[] parts = trimmed.split(";");
             if (parts.length < 2) {
-                System.out.println("⚠ Hatalı classroom satırı: " + line);
+                System.out.println("⚠ Invalid classroom entry: " + line);
                 continue;
             }
 
@@ -164,12 +163,11 @@ public class DataRepository {
     }
 
     /**
-     * sampleData_AllAttendanceLists.csv formatı:
+     * sampleData_AllAttendanceLists.csv format:
      *
      * CourseCode_01
      * ['Std_ID_170', 'Std_ID_077', ..., 'Std_ID_168']
      *
-     * (boş satır)
      * CourseCode_02
      * ['Std_ID_238', 'Std_ID_132', ..., 'Std_ID_058']
      *
@@ -177,37 +175,36 @@ public class DataRepository {
      */
     public Map<String, Course> loadCourseRegistrations(Path path) throws IOException {
         Map<String, Course> courseMap = new HashMap<>();
-
-        // Satır satır daha rahat kontrol için BufferedReader kullanıyorum
+        //to have an easy control, we use BufferedReader
         try (BufferedReader br = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             String line;
 
             while ((line = br.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty()) {
-                    continue; // boş satırları atla
+                    continue; // skip the empty lines
                 }
 
-                // Örnek: "CourseCode_01"
+                // ex: "CourseCode_01"
                 if (line.startsWith("CourseCode_")) {
                     String courseCode = line;
 
-                    // Şimdi bu course'a ait öğrenci listesi satırını bulalım
+                    //To find the student list belongs to this course
                     String listLine = null;
                     while ((listLine = br.readLine()) != null) {
                         listLine = listLine.trim();
                         if (!listLine.isEmpty()) {
-                            // bu satır liste satırı
+                            // list line
                             break;
                         }
                     }
 
                     if (listLine == null) {
-                        // Dosya bitti, çık
+                        // File is finished, exit
                         break;
                     }
 
-                    // Örnek:
+                    // Ex:
                     // ['Std_ID_170', 'Std_ID_077', ..., 'Std_ID_168']
                     String cleaned = listLine
                             .replace("[", "")
@@ -221,7 +218,7 @@ public class DataRepository {
                     for (String token : tokens) {
                         String id = token.trim();
                         if (id.isEmpty()) continue;
-                        // Artık id = "Std_ID_170" gibi
+                        // Like now the id = "Std_ID_170"
                         course.addStudent(id);
                     }
                 }
@@ -245,7 +242,7 @@ public class DataRepository {
             }
 
             this.slots = SlotGenerator.generateSlots(numDays, timeRanges);
-            break; // tek satır config kullandığımızı varsayıyoruz
+            break; // we assume that we used single line config
         }
     }
 
