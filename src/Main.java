@@ -1,7 +1,7 @@
 import java.io.IOException;
 import java.nio.file.Paths;
 
-public class Main { // to handle the problem
+public class Main { // to handle the problemm
 
     public static void main(String[] args) {
 
