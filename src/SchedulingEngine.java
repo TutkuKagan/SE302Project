@@ -97,16 +97,14 @@ public class SchedulingEngine {
 
                 for (Exam existing : schedule.values()) {
 
-                    if (sameSlotStudentConflict(candidate, existing) ||      // FR9: aynı slot + öğrenci
-                            violatesConsecutiveRule(candidate, existing) ||      // FR9: ardışık slot
-                            violatesMaxTwoPerDay(candidate, schedule) ||         // FR9: max 2 sınav/gün
-                            roomConflict(candidate, existing)) {                  // FR10: aynı oda + aynı slot
+                    if (sameSlotStudentConflict(candidate, existing) ||
+                            violatesConsecutiveRule(candidate, existing) ||
+                            violatesMaxTwoPerDay(candidate, schedule)) {
 
                         conflict = true;
                         break;
                     }
                 }
-
 
                 if (!conflict) {
                     schedule.put(course.getCourseCode(), candidate);
@@ -122,20 +120,6 @@ public class SchedulingEngine {
 
         return schedule;
     }
-
-    private boolean roomConflict(Exam a, Exam b) {
-        if (!a.getSlot().equals(b.getSlot())) return false;
-
-        for (Classroom r1 : a.getAssignedRooms()) {
-            for (Classroom r2 : b.getAssignedRooms()) {
-                if (r1.getRoomId().equals(r2.getRoomId())) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
 
 
 }
