@@ -1,14 +1,14 @@
 import java.io.IOException;
 import java.nio.file.Paths;
 
-public class Main { // to handle the problemm
+public class Main {
 
     public static void main(String[] args) {
 
         DataRepository repo = new DataRepository();
         CsvImportService importService = new CsvImportService(repo);
 
-        try { //
+        try {
 
             importService.importAll(
                     Paths.get("sampleData_AllStudents.csv"),

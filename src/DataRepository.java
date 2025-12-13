@@ -59,7 +59,7 @@ public class DataRepository {
     public Map<String, Student> getStudents() { return students; }
     public List<Classroom> getClassrooms() { return classrooms; }
 
-     //Returns all courses a given student is registered to.
+    //Returns all courses a given student is registered to.
 
     public List<Course> getCoursesOfStudent(String studentId) {
         List<Course> result = new ArrayList<>();
@@ -72,7 +72,7 @@ public class DataRepository {
         return result;
     }
 
-      //Checks whether two courses conflict by sharing at least one student.
+    //Checks whether two courses conflict by sharing at least one student.
 
     public boolean coursesConflict(String courseA, String courseB) {
         Course c1 = courses.get(courseA);
@@ -89,9 +89,6 @@ public class DataRepository {
         return false; // No shared students
     }
 
-    // =========================
-    //   CSV LOAD METOTLARI
-    // =========================
 
     public List<Student> loadStudents(Path path) throws IOException {
         List<Student> list = new ArrayList<>();
@@ -103,7 +100,7 @@ public class DataRepository {
             if (trimmed.isEmpty()) continue;
 
             if (first) {
-                // For example: "ALL OF THE STUDENTS IN THE SYSTEM" -> header, skip
+
                 first = false;
                 continue;
             }
@@ -123,7 +120,7 @@ public class DataRepository {
             if (trimmed.isEmpty()) continue;
 
             if (first) {
-                // For example: "ALL OF THE COURSES IN THE SYSTEM" -> header, skip
+
                 first = false;
                 continue;
             }
@@ -143,14 +140,14 @@ public class DataRepository {
             if (trimmed.isEmpty()) continue;
 
             if (first) {
-                // Example: "ALL OF THE CLASSROOMS; AND THEIR CAPACITIES IN THE SYSTEM"
+
                 first = false;
                 continue;
             }
 
             String[] parts = trimmed.split(";");
             if (parts.length < 2) {
-                System.out.println("⚠ Invalid classroom entry: " + line);
+                System.out.println("Invalid classroom entry: " + line);
                 continue;
             }
 
@@ -245,5 +242,90 @@ public class DataRepository {
             break; // we assume that we used single line config
         }
     }
+
+
+
+    //   FR3
+    //------------------------------------------------------------------------------------------------------------------
+    public boolean addStudent(String studentId) {
+        if (studentId == null || studentId.trim().isEmpty()) return false;
+        if (students.containsKey(studentId)) {
+            return false;
+        }
+        students.put(studentId, new Student(studentId));
+        return true;
+    }
+
+    public boolean removeStudent(String studentId) {
+        if (!students.containsKey(studentId)) {
+            return false;
+        }
+        students.remove(studentId);
+
+
+        for (Course c : courses.values()) {
+            c.getStudentIds().remove(studentId);
+        }
+        return true;
+    }
+
+    public boolean addCourse(String courseCode) {
+        if (courseCode == null || courseCode.trim().isEmpty()) return false;
+        if (courses.containsKey(courseCode)) {
+            return false;
+        }
+        courses.put(courseCode, new Course(courseCode));
+        return true;
+    }
+
+    public boolean removeCourse(String courseCode) {
+        if (!courses.containsKey(courseCode)) {
+            return false;
+        }
+        courses.remove(courseCode);
+        return true;
+    }
+
+    public boolean registerStudentToCourse(String studentId, String courseCode) {
+        Student s = students.get(studentId);
+        if (s == null) {
+
+            return false;
+        }
+
+        Course c = courses.get(courseCode);
+        if (c == null) {
+            c = new Course(courseCode);
+            courses.put(courseCode, c);
+        }
+
+        if (!c.getStudentIds().contains(studentId)) {
+            c.addStudent(studentId);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean unregisterStudentFromCourse(String studentId, String courseCode) {
+        Course c = courses.get(courseCode);
+        if (c == null) {
+            return false;
+        }
+        return c.getStudentIds().remove(studentId);
+    }
+
+    public boolean updateClassroomCapacity(String roomId, int newCapacity) {
+        if (newCapacity <= 0) return false;
+
+        for (Classroom room : classrooms) {
+            if (room.getRoomId().equals(roomId)) {
+                room.setCapacity(newCapacity);
+                return true;
+            }
+        }
+        return false;
+    }
+    //------------------------------------------------------------------------------------------------------------------
+
 
 }
