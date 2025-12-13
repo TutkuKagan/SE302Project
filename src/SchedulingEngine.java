@@ -53,14 +53,31 @@ public class SchedulingEngine {
         }
         return false;
     }
-    private boolean violatesMaxTwoPerDay(Exam candidate, Map<String, Exam> schedule) { //“A student cannot have more than 2 exams in one day.”
+
+    //FR10
+    private boolean roomOccupancyConflict(Exam a, Exam b) {
+        if (a.getSlot().getDay() != b.getSlot().getDay()) return false;
+        if (a.getSlot().getIndex() != b.getSlot().getIndex()) return false;
+
+        for (Classroom r1 : a.getAssignedRooms()) {
+            for (Classroom r2 : b.getAssignedRooms()) {
+                if (r1.getRoomId().equals(r2.getRoomId())) {
+
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean violatesMaxTwoPerDay(Exam candidate, Schedule schedule) { //“A student cannot have more than 2 exams in one day.”
         Course newCourse = candidate.getCourse();
         int day = candidate.getSlot().getDay();
 
         for (String student : newCourse.getStudentIds()) {
             int count = 0;
 
-            for (Exam e : schedule.values()) {
+            for (Exam e : schedule.getAllExams()) {
                 if (e.getSlot().getDay() == day &&
                         e.getCourse().getStudentIds().contains(student)) {
 
@@ -75,15 +92,17 @@ public class SchedulingEngine {
         if (!a.getSlot().equals(b.getSlot())) return false;
         return sameStudentConflict(a, b);
     }
-    public Map<String, Exam> generateExamSchedule() {
 
-        Map<String, Exam> schedule = new HashMap<>();
+    public Schedule generateExamSchedule() {
+
+        Schedule schedule = new Schedule();
 
         List<Slot> slots = repo.getSlots();
         List<Course> courses = new ArrayList<>(repo.getCourses().values());
 
         for (Course course : courses) {
             boolean placed = false;
+
             for (Slot slot : slots) {
                 // assign rooms
                 List<Classroom> rooms = assignRoomsForCourse(course);
@@ -95,22 +114,25 @@ public class SchedulingEngine {
 
                 boolean conflict = false;
 
-                for (Exam existing : schedule.values()) {
-
+                for (Exam existing : schedule.getAllExams()) {
                     if (sameSlotStudentConflict(candidate, existing) ||
-                            violatesConsecutiveRule(candidate, existing) ||
-                            violatesMaxTwoPerDay(candidate, schedule)) {
-
+                            roomOccupancyConflict(candidate, existing) ||   //FR10
+                            violatesConsecutiveRule(candidate, existing)) {
                         conflict = true;
                         break;
                     }
                 }
 
+                if (!conflict && violatesMaxTwoPerDay(candidate, schedule)) {
+                    conflict = true;
+                }
+
                 if (!conflict) {
-                    schedule.put(course.getCourseCode(), candidate);
+                    schedule.addExam(candidate);
                     placed = true;
                     break;
                 }
+
             }
 
             if (!placed) {
