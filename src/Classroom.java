@@ -9,5 +9,4 @@ public class Classroom {
 
     public String getRoomId() { return roomId; }
     public int getCapacity() { return capacity; }
-    public void setCapacity(int capacity) {this.capacity = capacity;}
 }

@@ -6,6 +6,7 @@ public class Exam {
     private Slot slot;
     private List<Classroom> assignedRooms;
 
+
     public Exam(Course course, Slot slot, List<Classroom> assignedRooms) {
         this.course = course;
         this.slot = slot;
