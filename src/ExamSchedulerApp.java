@@ -1,4 +1,6 @@
 import javafx.application.Application;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.Scene;
@@ -12,10 +14,20 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.cell.TextFieldTableCell;
+import javafx.util.converter.IntegerStringConverter;
+import javafx.geometry.Insets;
+import javafx.scene.control.TableCell;
 
 public class ExamSchedulerApp extends Application {
 
     private DataRepository repo;
+
+    private ObservableList<SlotConfigurationRow> slotData;
+    private Spinner<Integer> dayCountSpinner;
 
     @Override
     public void start(Stage primaryStage) {
@@ -49,6 +61,11 @@ public class ExamSchedulerApp extends Application {
         }
 
         TabPane tabPane = new TabPane();
+
+
+        tabPane.getTabs().add(createSlotConfigurationTab());
+
+
         tabPane.getTabs().add(createByCourseTab(schedule));
         tabPane.getTabs().add(createByRoomTab(schedule));
         tabPane.getTabs().add(createByStudentTab(schedule));
@@ -62,8 +79,154 @@ public class ExamSchedulerApp extends Application {
         primaryStage.show();
     }
 
+
+
+    private Tab createSlotConfigurationTab() {
+        VBox mainLayout = new VBox(20);
+        mainLayout.setPadding(new Insets(20));
+
+        Label title = new Label("📅 Slot ve Gün Yapılandırması (FR4)");
+        title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
+
+
+        HBox controls = createSlotControls();
+
+        // tablo
+        TableView<SlotConfigurationRow> slotTable = createSlotTable();
+        loadInitialSlotData(slotTable);
+
+
+        mainLayout.getChildren().addAll(title, controls, slotTable);
+
+        Tab tab = new Tab("2. Slot Config (FR4)", mainLayout);
+        tab.setClosable(false);
+        return tab;
+    }
+
+    private HBox createSlotControls() {
+        HBox controls = new HBox(15);
+
+
+        Label dayLabel = new Label("Toplam Sınav Günü:");
+        this.dayCountSpinner = new Spinner<>(1, 10, 5);
+        dayCountSpinner.setPrefWidth(70);
+
+
+        Button addNewSlotButton = new Button("➕ Yeni Slot Ekle");
+        addNewSlotButton.setOnAction(e -> addNewSlotRow());
+
+
+        Button saveButton = new Button("💾 Konfigürasyonu Kaydet");
+        saveButton.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white;");
+        saveButton.setOnAction(e -> handleSaveConfiguration());
+
+        controls.getChildren().addAll(dayLabel, dayCountSpinner, addNewSlotButton, saveButton);
+        return controls;
+    }
+
+    private TableView<SlotConfigurationRow> createSlotTable() {
+        TableView<SlotConfigurationRow> table = new TableView<>();
+        table.setEditable(true);
+        this.slotData = FXCollections.observableArrayList();
+        table.setItems(this.slotData);
+
+
+
+        TableColumn<SlotConfigurationRow, Integer> dayCol = new TableColumn<>("Day");
+        dayCol.setCellValueFactory(new PropertyValueFactory<>("day"));
+        dayCol.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+        dayCol.setOnEditCommit(event -> {
+            if (event.getNewValue() != null && event.getNewValue() > 0) {
+                event.getTableView().getItems().get(event.getTablePosition().getRow()).setDay(event.getNewValue());
+            } else {
+                table.refresh();
+            }
+        });
+
+        TableColumn<SlotConfigurationRow, Integer> slotIndexCol = new TableColumn<>("Slot Index");
+        slotIndexCol.setCellValueFactory(new PropertyValueFactory<>("slotIndex"));
+
+        TableColumn<SlotConfigurationRow, String> startTimeCol = new TableColumn<>("Start Time (HH:MM)");
+        startTimeCol.setCellValueFactory(new PropertyValueFactory<>("startTime"));
+        startTimeCol.setCellFactory(TextFieldTableCell.forTableColumn());
+        startTimeCol.setOnEditCommit(event -> {
+            event.getTableView().getItems().get(event.getTablePosition().getRow()).setStartTime(event.getNewValue());
+        });
+
+        TableColumn<SlotConfigurationRow, String> endTimeCol = new TableColumn<>("End Time (HH:MM)");
+        endTimeCol.setCellValueFactory(new PropertyValueFactory<>("endTime"));
+        endTimeCol.setCellFactory(TextFieldTableCell.forTableColumn());
+        endTimeCol.setOnEditCommit(event -> {
+            event.getTableView().getItems().get(event.getTablePosition().getRow()).setEndTime(event.getNewValue());
+        });
+
+        // silme işlemi
+        TableColumn<SlotConfigurationRow, Void> actionCol = new TableColumn<>("Action");
+        actionCol.setCellFactory(param -> new TableCell<SlotConfigurationRow, Void>() {
+            private final Button deleteButton = new Button("🗑️ Sil");
+            {
+                deleteButton.setOnAction(event -> {
+                    SlotConfigurationRow row = getTableView().getItems().get(getIndex());
+                    getTableView().getItems().remove(row);
+                });
+            }
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : deleteButton);
+            }
+        });
+
+        table.getColumns().addAll(dayCol, slotIndexCol, startTimeCol, endTimeCol, actionCol);
+        table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        return table;
+    }
+
+    private void loadInitialSlotData(TableView<SlotConfigurationRow> table) {
+
+        table.getItems().addAll(
+                new SlotConfigurationRow(1, 1, "09:00", "11:00"),
+                new SlotConfigurationRow(1, 2, "13:00", "15:00"),
+                new SlotConfigurationRow(2, 1, "09:00", "11:00")
+        );
+    }
+
+    private void addNewSlotRow() {
+        // yeni satır için gün slot ekleme
+        int maxDay = slotData.stream().mapToInt(SlotConfigurationRow::getDay).max().orElse(1);
+        int nextSlotIndex = slotData.stream()
+                .filter(s -> s.getDay() == maxDay)
+                .mapToInt(SlotConfigurationRow::getSlotIndex)
+                .max().orElse(0) + 1;
+
+        SlotConfigurationRow newRow = new SlotConfigurationRow(maxDay, nextSlotIndex, "00:00", "00:00");
+        slotData.add(newRow);
+    }
+
+    private void handleSaveConfiguration() {
+        int numDays = dayCountSpinner.getValue();
+
+
+
+        showInfo("Kaydedildi", "Slot konfigürasyonu başarıyla kaydedildi. Gün Sayısı: " + numDays);
+    }
+
+    private void showInfo(String title, String message) {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
+
+
+
     private Tab createByCourseTab(Schedule schedule) {
         TableView<CourseScheduleRow> table = new TableView<>();
+        table.setEditable(true); // tabloyu editleme şekli
+
         ObservableList<CourseScheduleRow> items = FXCollections.observableArrayList();
 
         for (Exam exam : schedule.getAllExams()) {
@@ -73,6 +236,7 @@ public class ExamSchedulerApp extends Application {
             String timeRange = exam.getSlot().getTimeRange();
             String rooms = joinRoomIds(exam.getAssignedRooms());
             int studentCount = exam.getCourse().getStudentCount();
+
 
             items.add(new CourseScheduleRow(courseCode, day, slotIndex, timeRange, rooms, studentCount));
         }
@@ -87,11 +251,37 @@ public class ExamSchedulerApp extends Application {
         TableColumn<CourseScheduleRow, String> courseCol = new TableColumn<>("Course");
         courseCol.setCellValueFactory(new PropertyValueFactory<>("courseCode"));
 
+
         TableColumn<CourseScheduleRow, Integer> dayCol = new TableColumn<>("Day");
         dayCol.setCellValueFactory(new PropertyValueFactory<>("day"));
+        dayCol.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+        dayCol.setOnEditCommit(event -> {
+            CourseScheduleRow row = event.getRowValue();
+            int newDay = event.getNewValue();
 
+            if (newDay > 0) {
+                row.setDay(newDay);
+            } else {
+                table.refresh(); // bug olursa eski hali
+            }
+        });
+
+        //
         TableColumn<CourseScheduleRow, Integer> slotCol = new TableColumn<>("Slot");
         slotCol.setCellValueFactory(new PropertyValueFactory<>("slotIndex"));
+        slotCol.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
+        slotCol.setOnEditCommit(event -> {
+            CourseScheduleRow row = event.getRowValue();
+            int newSlotIndex = event.getNewValue();
+
+            if (newSlotIndex > 0) {
+                row.setSlotIndex(newSlotIndex);
+
+            } else {
+                table.refresh(); // bug olursa eski hali
+            }
+        });
+
 
         TableColumn<CourseScheduleRow, String> timeCol = new TableColumn<>("Time");
         timeCol.setCellValueFactory(new PropertyValueFactory<>("timeRange"));
@@ -111,6 +301,7 @@ public class ExamSchedulerApp extends Application {
     }
 
     private Tab createByRoomTab(Schedule schedule) {
+
         TableView<RoomScheduleRow> table = new TableView<>();
         ObservableList<RoomScheduleRow> items = FXCollections.observableArrayList();
 
@@ -156,6 +347,7 @@ public class ExamSchedulerApp extends Application {
     }
 
     private Tab createByStudentTab(Schedule schedule) {
+
         TableView<StudentScheduleRow> table = new TableView<>();
         ObservableList<StudentScheduleRow> items = FXCollections.observableArrayList();
 
@@ -205,6 +397,7 @@ public class ExamSchedulerApp extends Application {
     }
 
     private Tab createByDaySlotTab(Schedule schedule) {
+
         TableView<DaySlotScheduleRow> table = new TableView<>();
         ObservableList<DaySlotScheduleRow> items = FXCollections.observableArrayList();
 
@@ -263,10 +456,13 @@ public class ExamSchedulerApp extends Application {
     }
 
 
+
+
     public static class CourseScheduleRow {
         private final String courseCode;
-        private final int day;
-        private final int slotIndex;
+
+        private final SimpleIntegerProperty day;
+        private final SimpleIntegerProperty slotIndex;
         private final String timeRange;
         private final String rooms;
         private final int studentCount;
@@ -274,16 +470,25 @@ public class ExamSchedulerApp extends Application {
         public CourseScheduleRow(String courseCode, int day, int slotIndex,
                                  String timeRange, String rooms, int studentCount) {
             this.courseCode = courseCode;
-            this.day = day;
-            this.slotIndex = slotIndex;
+
+            this.day = new SimpleIntegerProperty(day);
+            this.slotIndex = new SimpleIntegerProperty(slotIndex);
             this.timeRange = timeRange;
             this.rooms = rooms;
             this.studentCount = studentCount;
         }
 
         public String getCourseCode() { return courseCode; }
-        public int getDay() { return day; }
-        public int getSlotIndex() { return slotIndex; }
+
+
+        public int getDay() { return day.get(); }
+        public SimpleIntegerProperty dayProperty() { return day; }
+        public void setDay(int newDay) { this.day.set(newDay); } // FR7 Setter
+
+        public int getSlotIndex() { return slotIndex.get(); }
+        public SimpleIntegerProperty slotIndexProperty() { return slotIndex; }
+        public void setSlotIndex(int newSlotIndex) { this.slotIndex.set(newSlotIndex); } // FR7 Setter
+
         public String getTimeRange() { return timeRange; }
         public String getRooms() { return rooms; }
         public int getStudentCount() { return studentCount; }
@@ -360,6 +565,36 @@ public class ExamSchedulerApp extends Application {
         public String getTimeRange() { return timeRange; }
         public String getCourseCode() { return courseCode; }
         public String getRooms() { return rooms; }
+
+    }
+
+    public static class SlotConfigurationRow {
+        private final SimpleIntegerProperty day;
+        private final SimpleIntegerProperty slotIndex;
+        private final SimpleStringProperty startTime;
+        private final SimpleStringProperty endTime;
+
+        public SlotConfigurationRow(int day, int slotIndex, String startTime, String endTime) {
+            this.day = new SimpleIntegerProperty(day);
+            this.slotIndex = new SimpleIntegerProperty(slotIndex);
+            this.startTime = new SimpleStringProperty(startTime);
+            this.endTime = new SimpleStringProperty(endTime);
+        }
+
+        public int getDay() { return day.get(); }
+        public SimpleIntegerProperty dayProperty() { return day; }
+        public void setDay(int day) { this.day.set(day); }
+
+        public int getSlotIndex() { return slotIndex.get(); }
+        public SimpleIntegerProperty slotIndexProperty() { return slotIndex; }
+
+        public String getStartTime() { return startTime.get(); }
+        public SimpleStringProperty startTimeProperty() { return startTime; }
+        public void setStartTime(String startTime) { this.startTime.set(startTime); }
+
+        public String getEndTime() { return endTime.get(); }
+        public SimpleStringProperty endTimeProperty() { return endTime; }
+        public void setEndTime(String endTime) { this.endTime.set(endTime); }
     }
 
     public static void main(String[] args) {
