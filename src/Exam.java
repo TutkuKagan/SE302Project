@@ -20,6 +20,8 @@ public class Exam {
         return slot;
     }
 
+    public void setSlot(Slot slot) { this.slot = slot; }
+
     public List<Classroom> getAssignedRooms() {
         return assignedRooms;
     }

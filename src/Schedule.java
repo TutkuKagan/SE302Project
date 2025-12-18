@@ -15,7 +15,7 @@ public class Schedule {
         return examsByCourse.values();
     }
 
-    public Exam getExamForCourse(String courseCode) {
+    public Exam getExamByCourse(String courseCode) {
         return examsByCourse.get(courseCode);
     }
 }
