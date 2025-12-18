@@ -10,7 +10,10 @@ import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import javafx.scene.control.Alert.AlertType;
 
+import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -85,23 +88,21 @@ public class ExamSchedulerApp extends Application {
         VBox mainLayout = new VBox(20);
         mainLayout.setPadding(new Insets(20));
 
-        Label title = new Label("📅 Slot ve Gün Yapılandırması (FR4)");
+        Label title = new Label("📅 Slot ve Gün Yapılandırması ");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
-
 
         HBox controls = createSlotControls();
 
-        // tablo
         TableView<SlotConfigurationRow> slotTable = createSlotTable();
-        loadInitialSlotData(slotTable);
-
+        loadInitialSlotData();   // <-- Artık tabloyu repo’dan dolduruyoruz
 
         mainLayout.getChildren().addAll(title, controls, slotTable);
 
-        Tab tab = new Tab("2. Slot Config (FR4)", mainLayout);
+        Tab tab = new Tab("2. Slot Config ", mainLayout);
         tab.setClosable(false);
         return tab;
     }
+
 
     private HBox createSlotControls() {
         HBox controls = new HBox(15);
@@ -127,21 +128,13 @@ public class ExamSchedulerApp extends Application {
     private TableView<SlotConfigurationRow> createSlotTable() {
         TableView<SlotConfigurationRow> table = new TableView<>();
         table.setEditable(true);
+
         this.slotData = FXCollections.observableArrayList();
         table.setItems(this.slotData);
 
-
-
+        // Day sütunu: sadece gösterim amaçlı, hep 1 olacak
         TableColumn<SlotConfigurationRow, Integer> dayCol = new TableColumn<>("Day");
         dayCol.setCellValueFactory(new PropertyValueFactory<>("day"));
-        dayCol.setCellFactory(TextFieldTableCell.forTableColumn(new IntegerStringConverter()));
-        dayCol.setOnEditCommit(event -> {
-            if (event.getNewValue() != null && event.getNewValue() > 0) {
-                event.getTableView().getItems().get(event.getTablePosition().getRow()).setDay(event.getNewValue());
-            } else {
-                table.refresh();
-            }
-        });
 
         TableColumn<SlotConfigurationRow, Integer> slotIndexCol = new TableColumn<>("Slot Index");
         slotIndexCol.setCellValueFactory(new PropertyValueFactory<>("slotIndex"));
@@ -150,22 +143,24 @@ public class ExamSchedulerApp extends Application {
         startTimeCol.setCellValueFactory(new PropertyValueFactory<>("startTime"));
         startTimeCol.setCellFactory(TextFieldTableCell.forTableColumn());
         startTimeCol.setOnEditCommit(event -> {
-            event.getTableView().getItems().get(event.getTablePosition().getRow()).setStartTime(event.getNewValue());
+            SlotConfigurationRow row = event.getRowValue();
+            row.setStartTime(event.getNewValue());
         });
 
         TableColumn<SlotConfigurationRow, String> endTimeCol = new TableColumn<>("End Time (HH:MM)");
         endTimeCol.setCellValueFactory(new PropertyValueFactory<>("endTime"));
         endTimeCol.setCellFactory(TextFieldTableCell.forTableColumn());
         endTimeCol.setOnEditCommit(event -> {
-            event.getTableView().getItems().get(event.getTablePosition().getRow()).setEndTime(event.getNewValue());
+            SlotConfigurationRow row = event.getRowValue();
+            row.setEndTime(event.getNewValue());
         });
 
-        // silme işlemi
+        // Sil butonu
         TableColumn<SlotConfigurationRow, Void> actionCol = new TableColumn<>("Action");
         actionCol.setCellFactory(param -> new TableCell<SlotConfigurationRow, Void>() {
             private final Button deleteButton = new Button("🗑️ Sil");
             {
-                deleteButton.setOnAction(event -> {
+                deleteButton.setOnAction(e -> {
                     SlotConfigurationRow row = getTableView().getItems().get(getIndex());
                     getTableView().getItems().remove(row);
                 });
@@ -183,33 +178,106 @@ public class ExamSchedulerApp extends Application {
         return table;
     }
 
-    private void loadInitialSlotData(TableView<SlotConfigurationRow> table) {
 
-        table.getItems().addAll(
-                new SlotConfigurationRow(1, 1, "09:00", "11:00"),
-                new SlotConfigurationRow(1, 2, "13:00", "15:00"),
-                new SlotConfigurationRow(2, 1, "09:00", "11:00")
-        );
+    private void loadInitialSlotData() {
+        slotData.clear();
+
+        List<Slot> slots = repo.getSlots();
+
+        if (slots == null || slots.isEmpty()) {
+            // Hiç slot yoksa basit bir default ver:
+            dayCountSpinner.getValueFactory().setValue(5);
+            slotData.add(new SlotConfigurationRow(1, 1, "09:00", "11:00"));
+            slotData.add(new SlotConfigurationRow(1, 2, "14:00", "16:00"));
+            slotData.add(new SlotConfigurationRow(1, 3, "19:00", "21:00"));
+            return;
+        }
+
+        // Gün sayısını hesapla
+        int maxDay = slots.stream().mapToInt(Slot::getDay).max().orElse(1);
+        dayCountSpinner.getValueFactory().setValue(maxDay);
+
+        // Her slot index için bir time range al (tüm günlerde aynı olduğunu varsayıyoruz)
+        Map<Integer, String> indexToRange = new TreeMap<>();
+        for (Slot s : slots) {
+            indexToRange.putIfAbsent(s.getIndex(), s.getTimeRange());
+        }
+
+        for (Map.Entry<Integer, String> entry : indexToRange.entrySet()) {
+            int slotIndex = entry.getKey();
+            String range = entry.getValue();
+
+            String[] parts = range.split("-");
+            String start = parts.length > 0 ? parts[0].trim() : "";
+            String end   = parts.length > 1 ? parts[1].trim() : "";
+
+            slotData.add(new SlotConfigurationRow(1, slotIndex, start, end));
+        }
     }
 
     private void addNewSlotRow() {
-        // yeni satır için gün slot ekleme
-        int maxDay = slotData.stream().mapToInt(SlotConfigurationRow::getDay).max().orElse(1);
         int nextSlotIndex = slotData.stream()
-                .filter(s -> s.getDay() == maxDay)
                 .mapToInt(SlotConfigurationRow::getSlotIndex)
                 .max().orElse(0) + 1;
 
-        SlotConfigurationRow newRow = new SlotConfigurationRow(maxDay, nextSlotIndex, "00:00", "00:00");
-        slotData.add(newRow);
+        slotData.add(new SlotConfigurationRow(1, nextSlotIndex, "00:00", "00:00"));
     }
+
 
     private void handleSaveConfiguration() {
         int numDays = dayCountSpinner.getValue();
 
+        if (slotData.isEmpty()) {
+            showError("Geçersiz Konfigürasyon",
+                    "En az bir slot tanımlamanız gerekiyor.");
+            return;
+        }
 
+        // Slotları index’e göre sırala
+        List<SlotConfigurationRow> rows = new ArrayList<>(slotData);
+        rows.sort(Comparator.comparingInt(SlotConfigurationRow::getSlotIndex));
 
-        showInfo("Kaydedildi", "Slot konfigürasyonu başarıyla kaydedildi. Gün Sayısı: " + numDays);
+        List<String> timeRanges = new ArrayList<>();
+
+        for (SlotConfigurationRow row : rows) {
+            String start = row.getStartTime().trim();
+            String end   = row.getEndTime().trim();
+
+            if (start.isEmpty() || end.isEmpty()) {
+                showError("Eksik Zaman Bilgisi",
+                        "Tüm slotlar için başlangıç ve bitiş saatleri doldurulmalıdır.");
+                return;
+            }
+
+            String range = start + "-" + end;
+            timeRanges.add(range);
+        }
+
+        // 1) Repo içindeki slot listesini güncelle
+        List<Slot> newSlots = SlotGenerator.generateSlots(numDays, timeRanges);
+        repo.setSlots(newSlots);
+
+        // 2) CSV dosyasını FR1 formatında yeniden yaz
+        try (BufferedWriter bw = Files.newBufferedWriter(
+                Paths.get("sampleData_slot_config.csv"), StandardCharsets.UTF_8)) {
+
+            bw.write(Integer.toString(numDays));
+            for (String tr : timeRanges) {
+                bw.write(";");
+                bw.write(tr);
+            }
+            bw.newLine();
+        } catch (Exception e) {
+            showError("Dosya Yazma Hatası",
+                    "slot konfigürasyonu dosyaya kaydedilemedi:\n" + e.getMessage());
+            return;
+        }
+
+        showInfo("Kaydedildi",
+                "Slot konfigürasyonu başarıyla kaydedildi.\n" +
+                        "Gün sayısı: " + numDays +
+                        ", Günlük slot sayısı: " + timeRanges.size() +
+                        "\nYeni program oluşturmak için uygulamayı tekrar çalıştırmanız yeterli.");
     }
 
     private void showInfo(String title, String message) {
