@@ -121,7 +121,53 @@ public class ExamSchedulerApp extends Application {
                 exportByDaySlot
         );
 
-        return new MenuBar(fileMenu);
+        Menu actionsMenu = new Menu("Actions");
+        MenuItem reRunItem = new MenuItem("🔄 Re-run Scheduling");
+        reRunItem.setOnAction(e -> handleReRunScheduling());
+        actionsMenu.getItems().add(reRunItem);
+
+        return new MenuBar(fileMenu, actionsMenu);
+    }
+
+    private void handleReRunScheduling() {
+        SchedulingEngine engine = new SchedulingEngine(this.repo);
+
+        List<SchedulingResult> results = engine.generateRankedSolutions();
+
+        if (results.isEmpty()) {
+            showError("Scheduling Error", "No solution could be found even with relaxations.");
+            return;
+        }
+
+        SchedulingResult bestResult = results.get(0);
+        this.schedule = bestResult.getSchedule();
+
+        updateAllViews();
+
+        if (!bestResult.getRelaxations().isEmpty()) {
+            String details = String.join("\n", bestResult.getRelaxations());
+            showInfo("Schedule Re-run Successful",
+                    "The schedule was generated with the following relaxations:\n\n" + details);
+        } else {
+            showInfo("Success", "Schedule re-generated successfully with no rule violations.");
+        }
+    }
+
+    private void updateAllViews() {
+        BorderPane root = (BorderPane) dayCountSpinner.getScene().getRoot();
+        TabPane tabPane = (TabPane) root.getCenter();
+
+        int selectedIndex = tabPane.getSelectionModel().getSelectedIndex();
+
+        tabPane.getTabs().clear();
+        tabPane.getTabs().add(createDataManagementTab());
+        tabPane.getTabs().add(createSlotConfigurationTab());
+        tabPane.getTabs().add(createByCourseTab(this.schedule));
+        tabPane.getTabs().add(createByRoomTab(this.schedule));
+        tabPane.getTabs().add(createByStudentTab(this.schedule));
+        tabPane.getTabs().add(createByDaySlotTab(this.schedule));
+
+        tabPane.getSelectionModel().select(selectedIndex);
     }
 
     private void handleExportByCourse() {
@@ -324,7 +370,6 @@ public class ExamSchedulerApp extends Application {
         ComboBox<String> studentCombo = new ComboBox<>();
         ComboBox<String> courseCombo = new ComboBox<>();
 
-        // İlk listeyi repo’dan doldur
         List<String> studentIds = new ArrayList<>(repo.getStudents().keySet());
         Collections.sort(studentIds);
         studentCombo.setItems(FXCollections.observableArrayList(studentIds));
@@ -338,7 +383,7 @@ public class ExamSchedulerApp extends Application {
 
         Button registerBtn = new Button("📌 Register");
         Button unregisterBtn = new Button("❌ Unregister");
-        Button refreshBtn = new Button("🔄 Yenile");
+        Button refreshBtn = new Button("🔄 Refresh");
 
         // Tablo: hangi öğrenci hangi derste
         TableView<RegistrationRow> table = new TableView<>();
