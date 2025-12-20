@@ -421,18 +421,18 @@ public class ExamSchedulerApp extends Application {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         TextField newStudentField = new TextField();
-        newStudentField.setPromptText("Yeni öğrenci ID'si (ör. Std_ID_999)");
+        newStudentField.setPromptText("New student ID (e.g. Std_ID_999)");
 
-        Button addButton = new Button("➕ Ekle");
+        Button addButton = new Button("➕ Add");
         addButton.setOnAction(e -> {
             String id = newStudentField.getText().trim();
             if (id.isEmpty()) {
-                showError("Geçersiz ID", "Öğrenci ID'si boş olamaz.");
+                showError("Invalid ID", "Student ID can not be empty.");
                 return;
             }
             boolean ok = repo.addStudent(id);
             if (!ok) {
-                showError("Ekleme Başarısız", "Bu ID'ye sahip bir öğrenci zaten var.");
+                showError("Add Failed", "A student with this ID already exists.");
                 return;
             }
             data.add(new StudentRow(id));
@@ -440,29 +440,29 @@ public class ExamSchedulerApp extends Application {
             newStudentField.clear();
         });
 
-        Button removeButton = new Button("🗑️ Seçileni Sil");
+        Button removeButton = new Button("🗑️Delete Selected");
         removeButton.setOnAction(e -> {
             StudentRow selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
-                showError("Seçim Yok", "Lütfen silmek için bir öğrenci seçin.");
+                showError("No selection", "Please select a student to delete.");
                 return;
             }
             String id = selected.getStudentId();
             boolean ok = repo.removeStudent(id);
             if (!ok) {
-                showError("Silme Başarısız", "Öğrenci silinemedi.");
+                showError("Delete Failed", "Student could not be deleted.");
                 return;
             }
             data.remove(selected);
         });
 
         Label info = new Label(
-                "Not: Öğrenciler bellekte güncellenir; yeni sınav programı için schedule'ı tekrar üretmeniz gerekir."
+                "Note: Students are updated in memory; you must re-run scheduling to generate a new exam schedule."
         );
         info.setWrapText(true);
 
         HBox buttons = new HBox(10,
-                new Label("Yeni öğrenci:"), newStudentField, addButton, removeButton);
+                new Label("New Student:"), newStudentField, addButton, removeButton);
         buttons.setPadding(new Insets(10));
 
         VBox bottom = new VBox(5, buttons, info);
@@ -496,18 +496,18 @@ public class ExamSchedulerApp extends Application {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         TextField newCourseField = new TextField();
-        newCourseField.setPromptText("Yeni ders kodu (ör. CourseCode_99)");
+        newCourseField.setPromptText("New course code (e.g. CourseCode_99)");
 
-        Button addButton = new Button("➕ Ders Ekle");
+        Button addButton = new Button("➕ Add Course");
         addButton.setOnAction(e -> {
             String code = newCourseField.getText().trim();
             if (code.isEmpty()) {
-                showError("Geçersiz Kod", "Ders kodu boş olamaz.");
+                showError("Invalid Course Code", "Course code cannot be empty.");
                 return;
             }
             boolean ok = repo.addCourse(code);
             if (!ok) {
-                showError("Ekleme Başarısız", "Bu kodla zaten bir ders var.");
+                showError("Add Failed", "A course with this code already exists.");
                 return;
             }
             data.add(new CourseRow(code, 0));
@@ -515,29 +515,30 @@ public class ExamSchedulerApp extends Application {
             newCourseField.clear();
         });
 
-        Button removeButton = new Button("🗑️ Seçileni Sil");
+        Button removeButton = new Button("🗑️ Delete selected");
         removeButton.setOnAction(e -> {
             CourseRow selected = table.getSelectionModel().getSelectedItem();
             if (selected == null) {
-                showError("Seçim Yok", "Lütfen silmek için bir ders seçin.");
+                showError("No Selection", "Please select a course to delete.");
                 return;
             }
             String code = selected.getCourseCode();
             boolean ok = repo.removeCourse(code);
             if (!ok) {
-                showError("Silme Başarısız", "Ders silinemedi.");
+                showError("Delete Failed", "Course could not be deleted.");
                 return;
             }
             data.remove(selected);
         });
 
         Label info = new Label(
-                "Not: Ders listesi bellekte güncellenir; yeni program için schedule'ı yeniden üretmeniz gerekir."
+                "Note: Courses are updated in memory; re-run scheduling to generate a new exam schedule."
+
         );
         info.setWrapText(true);
 
         HBox buttons = new HBox(10,
-                new Label("Yeni ders:"), newCourseField, addButton, removeButton);
+                new Label("New Course:"), newCourseField, addButton, removeButton);
         buttons.setPadding(new Insets(10));
 
         VBox bottom = new VBox(5, buttons, info);
@@ -601,9 +602,7 @@ public class ExamSchedulerApp extends Application {
         table.getColumns().addAll(c1, c2, c3, c4, c5);
         root.setCenter(table);
 
-        // -------------------------------
-        // 🔴 ADIM 9 — ASIL OLAY BURASI
-        // Öğrenci seçilince tabloyu doldur
+        // When student is chosen, fill the table
         // -------------------------------
         studentBox.setOnAction(e -> {
 
@@ -663,8 +662,8 @@ public class ExamSchedulerApp extends Application {
         Collections.sort(courseCodes);
         courseCombo.setItems(FXCollections.observableArrayList(courseCodes));
 
-        studentCombo.setPromptText("Öğrenci seç");
-        courseCombo.setPromptText("Ders seç");
+        studentCombo.setPromptText("Select Student");
+        courseCombo.setPromptText("Select Course");
 
         Button registerBtn = new Button("📌 Register");
         Button unregisterBtn = new Button("❌ Unregister");
@@ -690,14 +689,14 @@ public class ExamSchedulerApp extends Application {
             String sid = studentCombo.getValue();
             String code = courseCombo.getValue();
             if (sid == null || code == null) {
-                showError("Eksik Seçim", "Hem öğrenci hem ders seçmelisiniz.");
+                showError("Missing Selection", "You must select both a student and a course.");
                 return;
             }
 
             boolean ok = repo.registerStudentToCourse(sid, code);
             if (!ok) {
-                showError("Kayıt Başarısız",
-                        "Öğrenci bulunamadı veya zaten bu derse kayıtlı.");
+                showError("Registration Failed",
+                        "Student not found or already registered to this course.");
                 return;
             }
             data.add(new RegistrationRow(sid, code));
@@ -707,14 +706,14 @@ public class ExamSchedulerApp extends Application {
             String sid = studentCombo.getValue();
             String code = courseCombo.getValue();
             if (sid == null || code == null) {
-                showError("Eksik Seçim", "Hem öğrenci hem ders seçmelisiniz.");
+                showError("Missing Selection", "You must select both a student and a course.");
                 return;
             }
 
             boolean ok = repo.unregisterStudentFromCourse(sid, code);
             if (!ok) {
-                showError("Silme Başarısız",
-                        "Bu öğrenci bu derse kayıtlı görünmüyor.");
+                showError("Delete Failed",
+                        "This student does not appear to be registered for this course.");
                 return;
             }
 
@@ -741,13 +740,13 @@ public class ExamSchedulerApp extends Application {
         });
 
         HBox controls = new HBox(10,
-                new Label("Öğrenci:"), studentCombo,
-                new Label("Ders:"), courseCombo,
+                new Label("Student:"), studentCombo,
+                new Label("Course:"), courseCombo,
                 registerBtn, unregisterBtn, refreshBtn);
         controls.setPadding(new Insets(10));
 
         Label info = new Label(
-                "Not: Kayıt değişiklikleri Course nesnelerindeki öğrenci listesine yansır ve yeni schedule üretiminde kullanılabilir."
+                "Note: Registration changes are reflected in the student lists of Course objects and can be used in re-running the schedule."
         );
         info.setWrapText(true);
 
@@ -762,7 +761,7 @@ public class ExamSchedulerApp extends Application {
         return tab;
     }
 
-    // repo’daki course -> student listesine göre tabloyu yeniden doldur
+    // // rebuild the table based on course → student lists in the repository
     private void rebuildRegistrationData(ObservableList<RegistrationRow> data) {
         data.clear();
         for (Course c : repo.getCourses().values()) {
@@ -796,13 +795,13 @@ public class ExamSchedulerApp extends Application {
             ClassroomRow row = evt.getRowValue();
             Integer newCap = evt.getNewValue();
             if (newCap == null || newCap <= 0) {
-                showError("Geçersiz Kapasite", "Kapasite pozitif bir sayı olmalıdır.");
+                showError("Invalid Capacity", "Capacity must be a positive number.");
                 table.refresh();
                 return;
             }
             boolean ok = repo.updateClassroomCapacity(row.getRoomId(), newCap);
             if (!ok) {
-                showError("Güncelleme Başarısız", "Kapasite güncellenemedi.");
+                showError("Update Failed.", "Capacity could not be updated.");
                 table.refresh();
                 return;
             }
@@ -814,7 +813,7 @@ public class ExamSchedulerApp extends Application {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         Label info = new Label(
-                "Not: Sınıf kapasitesi değişiklikleri bellekte tutulur; gerekirse yeni schedule alın."
+                "Note: Classroom capacity changes are stored in memory; re-run scheduling if necessary."
         );
         info.setWrapText(true);
 
@@ -833,7 +832,7 @@ public class ExamSchedulerApp extends Application {
         VBox mainLayout = new VBox(20);
         mainLayout.setPadding(new Insets(20));
 
-        Label title = new Label("📅 Slot ve Gün Yapılandırması ");
+        Label title = new Label("📅 Slot and Day Configuration");
         title.setStyle("-fx-font-size: 18px; -fx-font-weight: bold;");
 
         HBox controls = createSlotControls();
@@ -853,16 +852,16 @@ public class ExamSchedulerApp extends Application {
         HBox controls = new HBox(15);
 
 
-        Label dayLabel = new Label("Toplam Sınav Günü:");
+        Label dayLabel = new Label("Total Exam Days:");
         this.dayCountSpinner = new Spinner<>(1, 10, 5);
         dayCountSpinner.setPrefWidth(70);
 
 
-        Button addNewSlotButton = new Button("➕ Yeni Slot Ekle");
+        Button addNewSlotButton = new Button("➕ Add New Slot");
         addNewSlotButton.setOnAction(e -> addNewSlotRow());
 
 
-        Button saveButton = new Button("💾 Konfigürasyonu Kaydet");
+        Button saveButton = new Button("Save Configuration");
         saveButton.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white;");
         saveButton.setOnAction(e -> handleSaveConfiguration());
 
@@ -877,7 +876,7 @@ public class ExamSchedulerApp extends Application {
         this.slotData = FXCollections.observableArrayList();
         table.setItems(this.slotData);
 
-        // Day sütunu: sadece gösterim amaçlı, hep 1 olacak
+       // Day column: for display purposes only, always set to 1
         TableColumn<SlotConfigurationRow, Integer> dayCol = new TableColumn<>("Day");
         dayCol.setCellValueFactory(new PropertyValueFactory<>("day"));
 
@@ -900,10 +899,10 @@ public class ExamSchedulerApp extends Application {
             row.setEndTime(event.getNewValue());
         });
 
-        // Sil butonu
+        // Delete button
         TableColumn<SlotConfigurationRow, Void> actionCol = new TableColumn<>("Action");
         actionCol.setCellFactory(param -> new TableCell<SlotConfigurationRow, Void>() {
-            private final Button deleteButton = new Button("🗑️ Sil");
+            private final Button deleteButton = new Button("🗑️ Delete");
             {
                 deleteButton.setOnAction(e -> {
                     SlotConfigurationRow row = getTableView().getItems().get(getIndex());
@@ -930,7 +929,7 @@ public class ExamSchedulerApp extends Application {
         List<Slot> slots = repo.getSlots();
 
         if (slots == null || slots.isEmpty()) {
-            // Hiç slot yoksa basit bir default ver:
+            // If no slots exist, provide a simple default configuration
             dayCountSpinner.getValueFactory().setValue(5);
             slotData.add(new SlotConfigurationRow(1, 1, "09:00", "11:00"));
             slotData.add(new SlotConfigurationRow(1, 2, "14:00", "16:00"));
@@ -938,11 +937,11 @@ public class ExamSchedulerApp extends Application {
             return;
         }
 
-        // Gün sayısını hesapla
+        // Calculate the total number of days
         int maxDay = slots.stream().mapToInt(Slot::getDay).max().orElse(1);
         dayCountSpinner.getValueFactory().setValue(maxDay);
 
-        // Her slot index için bir time range al (tüm günlerde aynı olduğunu varsayıyoruz)
+        // Retrieve one time range per slot index (assuming all days share the same slots)
         Map<Integer, String> indexToRange = new TreeMap<>();
         for (Slot s : slots) {
             indexToRange.putIfAbsent(s.getIndex(), s.getTimeRange());
@@ -973,12 +972,12 @@ public class ExamSchedulerApp extends Application {
         int numDays = dayCountSpinner.getValue();
 
         if (slotData.isEmpty()) {
-            showError("Geçersiz Konfigürasyon",
-                    "En az bir slot tanımlamanız gerekiyor.");
+            showError("Invalid Configuration",
+                    "At least one slot must be defined.");
             return;
         }
 
-        // Slotları index’e göre sırala
+        // Sort slots by slot index
         List<SlotConfigurationRow> rows = new ArrayList<>(slotData);
         rows.sort(Comparator.comparingInt(SlotConfigurationRow::getSlotIndex));
 
@@ -989,8 +988,8 @@ public class ExamSchedulerApp extends Application {
             String endTime = row.getEndTime().trim();
 
             if (startTime.isEmpty() || endTime.isEmpty()) {
-                showError("Eksik Zaman Bilgisi",
-                        "Tüm slotlar için başlangıç ve bitiş saatleri doldurulmalıdır.");
+                showError("Missing Time Information",
+                        "Start and end times must be provided for all slots.");
                 return;
             }
 
@@ -998,11 +997,11 @@ public class ExamSchedulerApp extends Application {
             timeRanges.add(range);
         }
 
-        // 1) Repo içindeki slot listesini güncelle
+        // 1) Update slot list in the repository
         List<Slot> newSlots = SlotGenerator.generateSlots(numDays, timeRanges);
         repo.setSlots(newSlots);
 
-        // 2) CSV dosyasını FR1 formatında yeniden yaz (seçili dosyaya)
+        // 2) Rewrite the slot configuration CSV file in FR1 format (to the selected file)
         java.nio.file.Path out = this.slotConfigPath;
         if (out == null) {
             FileChooser chooser = new FileChooser();
@@ -1024,12 +1023,12 @@ public class ExamSchedulerApp extends Application {
             }
             bw.newLine();
         } catch (Exception e) {
-            showError("Dosya Yazma Hatası",
-                    "slot konfigürasyonu dosyaya kaydedilemedi\n" + e.getMessage());
+            showError("File Write Error",
+                    "The slot configuration file could not be saved.\n" + e.getMessage());
             return;
         }
 
-        // Slotlar değişti -> mümkünse otomatik yeniden schedule üret
+        // Slots changed → automatically re-run scheduling if possible
         boolean rescheduled = false;
         try {
             if (!repo.getCourses().isEmpty() && !repo.getClassrooms().isEmpty() && !repo.getSlots().isEmpty()) {
@@ -1044,11 +1043,13 @@ public class ExamSchedulerApp extends Application {
 
         updateAllViews();
 
-        showInfo("Kaydedildi",
-                "Slot konfigürasyonu başarıyla kaydedildi.\n" +
-                        "Gün sayısı: " + numDays +
-                        ", Günlük slot sayısı: " + timeRanges.size() +
-                        (rescheduled ? "\n\nSchedule otomatik olarak yeniden oluşturuldu." : "\n\nNot: Schedule oluşturmak için Actions > Run / Re-run Scheduling kullanın."));
+        showInfo("Saved",
+                "Slot configuration has been saved successfully.\n" +
+                        "Number of days: " + numDays +
+                        ", Slots per day: " + timeRanges.size() +
+                        (rescheduled
+                                ? "\n\nThe schedule was automatically regenerated."
+                                : "\n\nNote: Use Actions > Run / Re-run Scheduling to generate a schedule."));
     }
 
     private void showInfo(String title, String message) {
@@ -1070,7 +1071,7 @@ public class ExamSchedulerApp extends Application {
         }
 
         TableView<CourseScheduleRow> table = new TableView<>();
-        table.setEditable(true); // tabloyu editleme şekli
+        table.setEditable(true); // editing the table
 
         ObservableList<CourseScheduleRow> items = FXCollections.observableArrayList();
 
@@ -1104,10 +1105,10 @@ public class ExamSchedulerApp extends Application {
 
             if (newDay != null && newDay > 0) {
                 row.setDay(newDay);
-                // ➜ değişikliği gerçek schedule'a uygula
+                // apply the change to the actual schedule
                 applyRowToSchedule(row);
             } else {
-                table.refresh(); // geçersizse eski haline dön
+                table.refresh(); //Revert to the previous state if invalid
             }
         });
 
@@ -1120,10 +1121,10 @@ public class ExamSchedulerApp extends Application {
 
             if (newSlotIndex != null && newSlotIndex > 0) {
                 row.setSlotIndex(newSlotIndex);
-                // ➜ değişikliği gerçek schedule'a uygula
+                // apply the change to the actual schedule
                 applyRowToSchedule(row);
             } else {
-                table.refresh(); // geçersizse eski haline dön
+                table.refresh(); //Revert to the previous state if invalid
             }
         });
 
@@ -1447,35 +1448,50 @@ public class ExamSchedulerApp extends Application {
         }
 
         if (newSlot == null) {
-            showError("Invalid Slot", "Day " + newDay + ", Slot " + newSlotIndex + " için slot bulunamadı.");
+            showError(
+                    "Invalid Slot",
+                    "No slot found for Day " + newDay + ", Slot " + newSlotIndex + "."
+            );
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
         }
 
         if (wouldCauseSameSlotStudentConflict(exam, newSlot)) {
-            showError("Conflict", "Bu slotta öğrencileri çakışan başka sınav var (FR10 ihlali).");
+            showError(
+                    "Conflict",
+                    "Another exam with common students already exists in this slot (FR10 violation)."
+            );
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
         }
 
         if (wouldCauseRoomConflict(exam, newSlot)) {
-            showError("Conflict", "Bu slotta aynı sınıf(lar) başka bir sınav tarafından kullanılıyor (room conflict).");
+            showError(
+                    "Conflict",
+                    "One or more classrooms are already assigned to another exam in this slot (room conflict)."
+            );
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
         }
 
         if (wouldViolateConsecutiveConstraint(exam, newSlot)) {
-            showError("Constraint Violation", "Bu değişiklik bazı öğrenciler için ardışık (consecutive) sınav oluşturuyor.");
+            showError(
+                    "Constraint Violation",
+                    "This change creates consecutive exams for some students."
+            );
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
         }
 
         if (wouldViolateMaxTwoPerDayConstraint(exam, newSlot)) {
-            showError("Constraint Violation", "Bu değişiklik bazı öğrenciler için bir günde 2'den fazla sınav oluşturuyor.");
+            showError(
+                    "Constraint Violation",
+                    "This change creates more than two exams in a single day for some students."
+            );
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
@@ -1484,6 +1500,7 @@ public class ExamSchedulerApp extends Application {
         exam.setSlot(newSlot);
         Platform.runLater(this::updateAllViews);
     }
+
 
     private boolean wouldCauseSameSlotStudentConflict(Exam movingExam, Slot newSlot) {
         Set<String> movingStudents = new HashSet<>(movingExam.getCourse().getStudentIds());
@@ -1496,7 +1513,7 @@ public class ExamSchedulerApp extends Application {
 
                 for (String s : movingStudents) {
                     if (other.getCourse().getStudentIds().contains(s)) {
-                        return true; // aynı slotta ortak öğrenci var
+                        return true; // There are common students in the same slot
                     }
                 }
             }
