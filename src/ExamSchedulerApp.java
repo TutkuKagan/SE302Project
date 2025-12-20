@@ -8,6 +8,10 @@ import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
+import javafx.application.Platform;
+import javafx.stage.FileChooser;
+import java.io.File;
+import java.nio.file.Path;
 import javafx.scene.control.Alert.AlertType;
 
 import java.io.BufferedWriter;
@@ -27,53 +31,52 @@ import javafx.scene.control.TableCell;
 
 public class ExamSchedulerApp extends Application {
 
+    private Stage primaryStage;
+
     private DataRepository repo;
+    private CsvImportService importService;
+    private CsvExportService exportService;
+
+    // Last imported files (optional, for re-import/re-run)
+    private Path studentsPath;
+    private Path coursesPath;
+    private Path classroomsPath;
+    private Path registrationsPath;
+    private Path slotConfigPath;
 
     private ObservableList<SlotConfigurationRow> slotData;
     private Spinner<Integer> dayCountSpinner;
     private Schedule schedule;
-    private CsvExportService exportService;
 
     @Override
     public void start(Stage primaryStage) {
+        this.primaryStage = primaryStage;
+
         repo = new DataRepository();
-
-        CsvImportService importService = new CsvImportService(repo);
-        try {
-            importService.importAll(
-                    Paths.get("sampleData_AllStudents.csv"),
-                    Paths.get("sampleData_AllCourses.csv"),
-                    Paths.get("sampleData_AllClassroomsAndTheirCapacities.csv"),
-                    Paths.get("sampleData_AllAttendanceLists.csv"),
-                    Paths.get("sampleData_slot_config.csv")
-            );
-        } catch (IOException e) {
-            showError("CSV Import Error",
-                    "An error occurred while importing CSV files:\n" + e.getMessage());
-            e.printStackTrace();
-            return;
-        }
-
-        SchedulingEngine engine = new SchedulingEngine(repo);
-        try {
-            this.schedule = engine.generateExamSchedule();   // <– field’e yaz
-        } catch (RuntimeException ex) {
-            showError("Scheduling Error",
-                    "No feasible schedule could be generated:\n" + ex.getMessage());
-            ex.printStackTrace();
-            return;
-        }
-
+        this.importService = new CsvImportService(repo);
         this.exportService = new CsvExportService(repo);
 
-        TabPane tabPane = new TabPane();
-        tabPane.getTabs().add(createDataManagementTab()); //Data editing guı
+        // Try to load sample data from the working directory (optional).
+        tryAutoLoadDefaultSampleData();
 
+        // If we already have data, try to schedule once.
+        if (!repo.getCourses().isEmpty() && !repo.getClassrooms().isEmpty() && !repo.getSlots().isEmpty()) {
+            try {
+                this.schedule = new SchedulingEngine(repo).generateExamSchedule();
+            } catch (RuntimeException ex) {
+                this.schedule = null;
+                showError("Scheduling Error",
+                        "No feasible schedule could be generated with current data\n" + ex.getMessage());
+            }
+        }
+
+        TabPane tabPane = new TabPane();
+        tabPane.getTabs().add(createDataManagementTab());
         tabPane.getTabs().add(createSlotConfigurationTab());
-        tabPane.getTabs().add(createByCourseTab(schedule));
-        tabPane.getTabs().add(createByRoomTab(schedule));
-        tabPane.getTabs().add(createByStudentTab(schedule));
-        tabPane.getTabs().add(createByDaySlotTab(schedule));
+        tabPane.getTabs().add(createByCourseTab(this.schedule));
+        tabPane.getTabs().add(createByRoomTab(this.schedule));
+        tabPane.getTabs().add(createByStudentTab(this.schedule));
+        tabPane.getTabs().add(createByDaySlotTab(this.schedule));
 
         BorderPane root = new BorderPane();
         root.setTop(createMenuBar());
@@ -83,6 +86,30 @@ public class ExamSchedulerApp extends Application {
         primaryStage.setTitle("Desktop Exam Scheduling Assistant - Schedule Views");
         primaryStage.setScene(scene);
         primaryStage.show();
+
+    }
+
+    private void tryAutoLoadDefaultSampleData() {
+        try {
+            Path s = Paths.get("sampleData_AllStudents.csv");
+            Path c = Paths.get("sampleData_AllCourses.csv");
+            Path r = Paths.get("sampleData_AllClassroomsAndTheirCapacities.csv");
+            Path a = Paths.get("sampleData_AllAttendanceLists.csv");
+            Path slots = Paths.get("sampleData_slot_config.csv");
+
+            if (Files.exists(s) && Files.exists(c) && Files.exists(r) && Files.exists(a) && Files.exists(slots)) {
+                this.studentsPath = s;
+                this.coursesPath = c;
+                this.classroomsPath = r;
+                this.registrationsPath = a;
+                this.slotConfigPath = slots;
+
+                importService.importAll(s, c, r, a, slots);
+            }
+        } catch (IOException e) {
+            showError("CSV Import Error",
+                    "An error occurred while importing default CSV files\n" + e.getMessage());
+        }
     }
 
     private Tab createDataManagementTab() {
@@ -97,64 +124,218 @@ public class ExamSchedulerApp extends Application {
         return outer;
     }
 
-
-
     private MenuBar createMenuBar() {
-        Menu fileMenu = new Menu("Export");
+        boolean hasSchedule = (schedule != null);
+
+        Menu fileMenu = new Menu("File");
+
+        MenuItem importAll = new MenuItem("📥 Import CSV Files...");
+        importAll.setOnAction(e -> handleImportAll());
+
+        MenuItem importSlotsOnly = new MenuItem("📥 Import Slot Configuration Only...");
+        importSlotsOnly.setOnAction(e -> handleImportSlotsOnly());
+
+        MenuItem exit = new MenuItem("Exit");
+        exit.setOnAction(e -> {
+            if (primaryStage != null) primaryStage.close();
+        });
+
+        fileMenu.getItems().addAll(importAll, importSlotsOnly, new SeparatorMenuItem(), exit);
+
+        Menu exportMenu = new Menu("Export");
 
         MenuItem exportByCourse = new MenuItem("Export – By Course");
         exportByCourse.setOnAction(e -> handleExportByCourse());
+        exportByCourse.setDisable(!hasSchedule);
 
         MenuItem exportByRoom = new MenuItem("Export – By Room");
         exportByRoom.setOnAction(e -> handleExportByRoom());
+        exportByRoom.setDisable(!hasSchedule);
 
         MenuItem exportByStudent = new MenuItem("Export – By Student");
         exportByStudent.setOnAction(e -> handleExportByStudent());
+        exportByStudent.setDisable(!hasSchedule);
 
         MenuItem exportByDaySlot = new MenuItem("Export – By Day/Slot");
         exportByDaySlot.setOnAction(e -> handleExportByDaySlot());
+        exportByDaySlot.setDisable(!hasSchedule);
 
-        fileMenu.getItems().addAll(
-                exportByCourse,
-                exportByRoom,
-                exportByStudent,
-                exportByDaySlot
-        );
+        exportMenu.getItems().addAll(exportByCourse, exportByRoom, exportByStudent, exportByDaySlot);
 
         Menu actionsMenu = new Menu("Actions");
-        MenuItem reRunItem = new MenuItem("🔄 Re-run Scheduling");
-        reRunItem.setOnAction(e -> handleReRunScheduling());
-        actionsMenu.getItems().add(reRunItem);
+        MenuItem runItem = new MenuItem("▶ Run / Re-run Scheduling");
+        runItem.setOnAction(e -> handleReRunScheduling());
+        actionsMenu.getItems().add(runItem);
 
-        return new MenuBar(fileMenu, actionsMenu);
+        Menu helpMenu = new Menu("Help");
+        MenuItem howTo = new MenuItem("How to use");
+        howTo.setOnAction(e -> showHowToDialog());
+        MenuItem constraints = new MenuItem("Constraints");
+        constraints.setOnAction(e -> showConstraintsDialog());
+        MenuItem about = new MenuItem("About");
+        about.setOnAction(e -> showAboutDialog());
+        helpMenu.getItems().addAll(howTo, constraints, new SeparatorMenuItem(), about);
+
+        return new MenuBar(fileMenu, exportMenu, actionsMenu, helpMenu);
     }
 
     private void handleReRunScheduling() {
-        SchedulingEngine engine = new SchedulingEngine(this.repo);
-
-        List<SchedulingResult> results = engine.generateRankedSolutions();
-
-        if (results.isEmpty()) {
-            showError("Scheduling Error", "No solution could be found even with relaxations.");
+        if (repo.getCourses().isEmpty() || repo.getClassrooms().isEmpty() || repo.getSlots().isEmpty()) {
+            showError("Missing Data",
+                    "Please import Students/Courses/Classrooms/Registrations and Slot Configuration before scheduling.");
             return;
         }
 
-        SchedulingResult bestResult = results.get(0);
-        this.schedule = bestResult.getSchedule();
-
-        updateAllViews();
-
-        if (!bestResult.getRelaxations().isEmpty()) {
-            String details = String.join("\n", bestResult.getRelaxations());
-            showInfo("Schedule Re-run Successful",
-                    "The schedule was generated with the following relaxations:\n\n" + details);
-        } else {
-            showInfo("Success", "Schedule re-generated successfully with no rule violations.");
+        try {
+            SchedulingEngine engine = new SchedulingEngine(this.repo);
+            this.schedule = engine.generateExamSchedule();
+            updateAllViews();
+            showInfo("Success", "Schedule generated successfully.");
+        } catch (RuntimeException ex) {
+            this.schedule = null;
+            updateAllViews();
+            showError("Scheduling Error", "No feasible schedule could be generated\n" + ex.getMessage());
         }
     }
 
+    private void handleImportAll() {
+        Path s = chooseCsvFile("Select Students CSV", studentsPath);
+        if (s == null) return;
+        Path c = chooseCsvFile("Select Courses CSV", coursesPath);
+        if (c == null) return;
+        Path r = chooseCsvFile("Select Classrooms CSV", classroomsPath);
+        if (r == null) return;
+        Path a = chooseCsvFile("Select Registrations / Attendance CSV", registrationsPath);
+        if (a == null) return;
+        Path slots = chooseCsvFile("Select Slot Configuration CSV", slotConfigPath);
+        if (slots == null) return;
+
+        try {
+            this.studentsPath = s;
+            this.coursesPath = c;
+            this.classroomsPath = r;
+            this.registrationsPath = a;
+            this.slotConfigPath = slots;
+
+            importService.importAll(s, c, r, a, slots);
+
+            // Try scheduling immediately.
+            this.schedule = new SchedulingEngine(repo).generateExamSchedule();
+
+            updateAllViews();
+            showInfo("Import & Scheduling", "CSV files imported and schedule generated successfully.");
+        } catch (Exception ex) {
+            this.schedule = null;
+            updateAllViews();
+            showError("Import/Scheduling Error", "Operation failed\n" + ex.getMessage());
+        }
+    }
+
+    private void handleImportSlotsOnly() {
+        Path slots = chooseCsvFile("Select Slot Configuration CSV", slotConfigPath);
+        if (slots == null) return;
+
+        try {
+            this.slotConfigPath = slots;
+            repo.loadSlots(slots);
+
+            // Slot config changed -> try to re-schedule if we have enough data.
+            if (!repo.getCourses().isEmpty() && !repo.getClassrooms().isEmpty() && !repo.getSlots().isEmpty()) {
+                this.schedule = new SchedulingEngine(repo).generateExamSchedule();
+            } else {
+                this.schedule = null;
+            }
+
+            updateAllViews();
+            showInfo("Slot Configuration", "Slot configuration imported successfully.");
+        } catch (Exception ex) {
+            this.schedule = null;
+            updateAllViews();
+            showError("Slot Configuration Error", "Failed to import slot configuration\n" + ex.getMessage());
+        }
+    }
+
+    private Path chooseCsvFile(String title, Path lastPath) {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle(title);
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+
+        if (lastPath != null) {
+            try {
+                File parent = lastPath.toFile().getParentFile();
+                if (parent != null && parent.exists()) {
+                    chooser.setInitialDirectory(parent);
+                }
+            } catch (Exception ignored) { }
+        }
+
+        File file = chooser.showOpenDialog(primaryStage);
+        return file == null ? null : file.toPath();
+    }
+    private void showHowToDialog() {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("How to use");
+        alert.setHeaderText("Exam Scheduler - User Guide");
+
+        String msg =
+                "1) File > Import CSV Files...\n" +
+                        "   - Students, Courses, Classrooms, Registrations, Slot Config\n\n" +
+                        "2) Actions > Run / Re-run Scheduling\n" +
+                        "   - Generates a schedule respecting mandatory constraints\n\n" +
+                        "3) Slot Configuration tab\n" +
+                        "   - Edit day count & time ranges, save and re-run\n\n" +
+                        "4) By Course tab\n" +
+                        "   - You may edit Day/Slot; the system blocks constraint violations\n\n" +
+                        "5) Export menu\n" +
+                        "   - Export schedule views as CSV";
+
+        TextArea ta = new TextArea(msg);
+        ta.setEditable(false);
+        ta.setWrapText(true);
+        ta.setPrefWidth(650);
+        ta.setPrefHeight(380);
+        alert.getDialogPane().setContent(ta);
+        alert.showAndWait();
+    }
+
+    private void showConstraintsDialog() {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("Constraints");
+        alert.setHeaderText("Mandatory constraints");
+
+        String msg =
+                "Hard constraints (never relaxed):\n" +
+                        "- A student cannot have 2 consecutive slots on the same day.\n" +
+                        "- A student cannot have more than 2 exams in a day.\n" +
+                        "- Same slot: common students cannot overlap.\n" +
+                        "- Same slot: a classroom cannot be assigned to 2 exams.\n\n" +
+                        "If no feasible schedule exists, the application reports 'No feasible schedule'.";
+
+        TextArea ta = new TextArea(msg);
+        ta.setEditable(false);
+        ta.setWrapText(true);
+        ta.setPrefWidth(650);
+        ta.setPrefHeight(280);
+        alert.getDialogPane().setContent(ta);
+        alert.showAndWait();
+    }
+
+    private void showAboutDialog() {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle("About");
+        alert.setHeaderText("Desktop Exam Scheduling Assistant");
+        alert.setContentText(
+                "SE302 Project - Student Affairs Scheduling Tool\n" +
+                        "Imports CSV data, generates a feasible exam schedule, and exports views.");
+        alert.showAndWait();
+    }
+
+
+
+
     private void updateAllViews() {
         BorderPane root = (BorderPane) dayCountSpinner.getScene().getRoot();
+        root.setTop(createMenuBar());
         TabPane tabPane = (TabPane) root.getCenter();
 
         int selectedIndex = tabPane.getSelectionModel().getSelectedIndex();
@@ -700,16 +881,16 @@ public class ExamSchedulerApp extends Application {
         List<String> timeRanges = new ArrayList<>();
 
         for (SlotConfigurationRow row : rows) {
-            String start = row.getStartTime().trim();
-            String end   = row.getEndTime().trim();
+            String startTime = row.getStartTime().trim();
+            String endTime = row.getEndTime().trim();
 
-            if (start.isEmpty() || end.isEmpty()) {
+            if (startTime.isEmpty() || endTime.isEmpty()) {
                 showError("Eksik Zaman Bilgisi",
                         "Tüm slotlar için başlangıç ve bitiş saatleri doldurulmalıdır.");
                 return;
             }
 
-            String range = start + "-" + end;
+            String range = startTime + "-" + endTime;
             timeRanges.add(range);
         }
 
@@ -717,10 +898,21 @@ public class ExamSchedulerApp extends Application {
         List<Slot> newSlots = SlotGenerator.generateSlots(numDays, timeRanges);
         repo.setSlots(newSlots);
 
-        // 2) CSV dosyasını FR1 formatında yeniden yaz
-        try (BufferedWriter bw = Files.newBufferedWriter(
-                Paths.get("sampleData_slot_config.csv"), StandardCharsets.UTF_8)) {
+        // 2) CSV dosyasını FR1 formatında yeniden yaz (seçili dosyaya)
+        java.nio.file.Path out = this.slotConfigPath;
+        if (out == null) {
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle("Save Slot Configuration CSV");
+            chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+            File file = chooser.showSaveDialog(primaryStage);
+            if (file == null) {
+                return;
+            }
+            out = file.toPath();
+            this.slotConfigPath = out;
+        }
 
+        try (BufferedWriter bw = Files.newBufferedWriter(out, StandardCharsets.UTF_8)) {
             bw.write(Integer.toString(numDays));
             for (String tr : timeRanges) {
                 bw.write(";");
@@ -729,15 +921,30 @@ public class ExamSchedulerApp extends Application {
             bw.newLine();
         } catch (Exception e) {
             showError("Dosya Yazma Hatası",
-                    "slot konfigürasyonu dosyaya kaydedilemedi:\n" + e.getMessage());
+                    "slot konfigürasyonu dosyaya kaydedilemedi\n" + e.getMessage());
             return;
         }
+
+        // Slotlar değişti -> mümkünse otomatik yeniden schedule üret
+        boolean rescheduled = false;
+        try {
+            if (!repo.getCourses().isEmpty() && !repo.getClassrooms().isEmpty() && !repo.getSlots().isEmpty()) {
+                this.schedule = new SchedulingEngine(repo).generateExamSchedule();
+                rescheduled = true;
+            } else {
+                this.schedule = null;
+            }
+        } catch (RuntimeException ex) {
+            this.schedule = null;
+        }
+
+        updateAllViews();
 
         showInfo("Kaydedildi",
                 "Slot konfigürasyonu başarıyla kaydedildi.\n" +
                         "Gün sayısı: " + numDays +
                         ", Günlük slot sayısı: " + timeRanges.size() +
-                        "\nYeni program oluşturmak için uygulamayı tekrar çalıştırmanız yeterli.");
+                        (rescheduled ? "\n\nSchedule otomatik olarak yeniden oluşturuldu." : "\n\nNot: Schedule oluşturmak için Actions > Run / Re-run Scheduling kullanın."));
     }
 
     private void showInfo(String title, String message) {
@@ -752,6 +959,13 @@ public class ExamSchedulerApp extends Application {
 
 
     private Tab createByCourseTab(Schedule schedule) {
+
+        if (schedule == null) {
+            Tab tab = new Tab("By Course", new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
+            tab.setClosable(false);
+            return tab;
+        }
+
         TableView<CourseScheduleRow> table = new TableView<>();
         table.setEditable(true); // tabloyu editleme şekli
 
@@ -830,6 +1044,13 @@ public class ExamSchedulerApp extends Application {
 
     private Tab createByRoomTab(Schedule schedule) {
 
+        if (schedule == null) {
+            Tab tab = new Tab("By Room", new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
+            tab.setClosable(false);
+            return tab;
+        }
+
+
         TableView<RoomScheduleRow> table = new TableView<>();
         ObservableList<RoomScheduleRow> items = FXCollections.observableArrayList();
 
@@ -875,6 +1096,13 @@ public class ExamSchedulerApp extends Application {
     }
 
     private Tab createByStudentTab(Schedule schedule) {
+
+        if (schedule == null) {
+            Tab tab = new Tab("By Student", new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
+            tab.setClosable(false);
+            return tab;
+        }
+
 
         TableView<StudentScheduleRow> table = new TableView<>();
         ObservableList<StudentScheduleRow> items = FXCollections.observableArrayList();
@@ -925,6 +1153,13 @@ public class ExamSchedulerApp extends Application {
     }
 
     private Tab createByDaySlotTab(Schedule schedule) {
+
+        if (schedule == null) {
+            Tab tab = new Tab("By Day/Slot", new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
+            tab.setClosable(false);
+            return tab;
+        }
+
 
         TableView<DaySlotScheduleRow> table = new TableView<>();
         ObservableList<DaySlotScheduleRow> items = FXCollections.observableArrayList();
@@ -1107,28 +1342,46 @@ public class ExamSchedulerApp extends Application {
         }
 
         if (newSlot == null) {
-            showError("Invalid Slot",
-                    "Day " + newDay + ", Slot " + newSlotIndex + " için slot bulunamadı.");
-
+            showError("Invalid Slot", "Day " + newDay + ", Slot " + newSlotIndex + " için slot bulunamadı.");
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
         }
 
         if (wouldCauseSameSlotStudentConflict(exam, newSlot)) {
-            showError("Conflict",
-                    "Bu slotta öğrencileri çakışan başka sınav var (FR10 ihlali).");
+            showError("Conflict", "Bu slotta öğrencileri çakışan başka sınav var (FR10 ihlali).");
+            row.setDay(exam.getSlot().getDay());
+            row.setSlotIndex(exam.getSlot().getIndex());
+            return;
+        }
+
+        if (wouldCauseRoomConflict(exam, newSlot)) {
+            showError("Conflict", "Bu slotta aynı sınıf(lar) başka bir sınav tarafından kullanılıyor (room conflict).");
+            row.setDay(exam.getSlot().getDay());
+            row.setSlotIndex(exam.getSlot().getIndex());
+            return;
+        }
+
+        if (wouldViolateConsecutiveConstraint(exam, newSlot)) {
+            showError("Constraint Violation", "Bu değişiklik bazı öğrenciler için ardışık (consecutive) sınav oluşturuyor.");
+            row.setDay(exam.getSlot().getDay());
+            row.setSlotIndex(exam.getSlot().getIndex());
+            return;
+        }
+
+        if (wouldViolateMaxTwoPerDayConstraint(exam, newSlot)) {
+            showError("Constraint Violation", "Bu değişiklik bazı öğrenciler için bir günde 2'den fazla sınav oluşturuyor.");
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
         }
 
         exam.setSlot(newSlot);
+        Platform.runLater(this::updateAllViews);
     }
 
     private boolean wouldCauseSameSlotStudentConflict(Exam movingExam, Slot newSlot) {
-        Set<String> movingStudents =
-                new HashSet<>(movingExam.getCourse().getStudentIds());
+        Set<String> movingStudents = new HashSet<>(movingExam.getCourse().getStudentIds());
 
         for (Exam other : schedule.getAllExams()) {
             if (other == movingExam) continue;
@@ -1138,7 +1391,7 @@ public class ExamSchedulerApp extends Application {
 
                 for (String s : movingStudents) {
                     if (other.getCourse().getStudentIds().contains(s)) {
-                        return true; // aynı slotta ortak öğrenci var -> FR10 ihlali
+                        return true; // aynı slotta ortak öğrenci var
                     }
                 }
             }
@@ -1146,7 +1399,67 @@ public class ExamSchedulerApp extends Application {
         return false;
     }
 
+    private boolean wouldCauseRoomConflict(Exam movingExam, Slot newSlot) {
+        Set<String> movingRooms = new HashSet<>();
+        for (Classroom cr : movingExam.getAssignedRooms()) {
+            movingRooms.add(cr.getRoomId());
+        }
 
+        for (Exam other : schedule.getAllExams()) {
+            if (other == movingExam) continue;
+
+            if (other.getSlot().getDay() == newSlot.getDay()
+                    && other.getSlot().getIndex() == newSlot.getIndex()) {
+
+                for (Classroom cr : other.getAssignedRooms()) {
+                    if (movingRooms.contains(cr.getRoomId())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean wouldViolateConsecutiveConstraint(Exam movingExam, Slot newSlot) {
+        int day = newSlot.getDay();
+        int idx = newSlot.getIndex();
+        int prev = idx - 1;
+        int next = idx + 1;
+
+        for (String studentId : movingExam.getCourse().getStudentIds()) {
+            for (Exam other : schedule.getAllExams()) {
+                if (other == movingExam) continue;
+                if (!other.getCourse().getStudentIds().contains(studentId)) continue;
+                if (other.getSlot().getDay() != day) continue;
+
+                int oIdx = other.getSlot().getIndex();
+                if (oIdx == prev || oIdx == next) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean wouldViolateMaxTwoPerDayConstraint(Exam movingExam, Slot newSlot) {
+        int day = newSlot.getDay();
+
+        for (String studentId : movingExam.getCourse().getStudentIds()) {
+            int count = 0;
+            for (Exam other : schedule.getAllExams()) {
+                if (other == movingExam) continue;
+                if (!other.getCourse().getStudentIds().contains(studentId)) continue;
+                if (other.getSlot().getDay() == day) {
+                    count++;
+                    if (count >= 2) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
     public static class RoomScheduleRow {
         private final String roomId;
         private final int day;

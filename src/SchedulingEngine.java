@@ -2,7 +2,7 @@ import java.util.*;
 
 public class SchedulingEngine {
 
-    private DataRepository repo;
+    private final DataRepository repo;
 
     public SchedulingEngine(DataRepository repo) {
         this.repo = repo;
@@ -10,33 +10,22 @@ public class SchedulingEngine {
 
     public List<SchedulingResult> generateRankedSolutions() {
         List<SchedulingResult> results = new ArrayList<>();
-
         try {
-            results.add(attemptScheduling(false, false));
-        } catch (RuntimeException e) { }
-
-        try {
-            results.add(attemptScheduling(true, false));
-        } catch (RuntimeException e) { }
-
-        try {
-            results.add(attemptScheduling(false, true));
-        } catch (RuntimeException e) { }
-
-        try {
-            results.add(attemptScheduling(true, true));
-        } catch (RuntimeException e) { }
-
-        results.sort(Comparator.comparingInt(SchedulingResult::getPenaltyScore));
+            results.add(attemptScheduling());
+        } catch (RuntimeException ignored) {
+            // no feasible schedule
+        }
         return results;
     }
 
-    private SchedulingResult attemptScheduling(boolean relaxMaxTwo, boolean relaxConsecutive) {
+    private SchedulingResult attemptScheduling() {
         Schedule schedule = new Schedule();
         SchedulingResult result = new SchedulingResult(schedule);
 
         List<Slot> slots = repo.getSlots();
         List<Course> courses = new ArrayList<>(repo.getCourses().values());
+
+        courses.sort(Comparator.comparingInt(Course::getStudentCount).reversed());
 
         for (Course course : courses) {
             boolean placed = false;
@@ -48,46 +37,35 @@ public class SchedulingEngine {
                 Exam candidate = new Exam(course, slot, rooms);
 
                 boolean hardConflict = false;
+                boolean consecutiveViolation = false;
+
                 for (Exam existing : schedule.getAllExams()) {
                     if (sameSlotStudentConflict(candidate, existing) || roomOccupancyConflict(candidate, existing)) {
                         hardConflict = true;
                         break;
                     }
-                }
-                if (hardConflict) continue;
-
-                boolean consecutiveViolation = false;
-                for (Exam existing : schedule.getAllExams()) {
                     if (violatesConsecutiveRule(candidate, existing)) {
                         consecutiveViolation = true;
                         break;
                     }
                 }
 
+                if (hardConflict) continue;
+                if (consecutiveViolation) continue;
+
                 boolean maxTwoViolation = violatesMaxTwoPerDay(candidate, schedule);
+                if (maxTwoViolation) continue;
 
-                boolean canPlace = true;
-                if (consecutiveViolation && !relaxConsecutive) canPlace = false;
-                if (maxTwoViolation && !relaxMaxTwo) canPlace = false;
-
-                if (canPlace) {
-                    if (consecutiveViolation) {
-                        result.addRelaxation("Relaxed consecutive exam rule for " + course.getCourseCode(), 50);
-                    }
-                    if (maxTwoViolation) {
-                        result.addRelaxation("Relaxed max 2 exams per day rule for " + course.getCourseCode(), 100);
-                    }
-
-                    schedule.addExam(candidate);
-                    placed = true;
-                    break;
-                }
+                schedule.addExam(candidate);
+                placed = true;
+                break;
             }
 
             if (!placed) {
                 throw new RuntimeException("No feasible slot found for " + course.getCourseCode());
             }
         }
+
         return result;
     }
 
