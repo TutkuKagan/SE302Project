@@ -361,9 +361,9 @@ public class ExamSchedulerApp extends Application {
                     schedule,
                     Paths.get("schedule_by_course.csv")
             );
-            showInfo("Export", "Schedule (By Course) CSV olarak kaydedildi.");
+            showInfo("Export", "Schedule (By Course) has been saved as a CSV file.");
         } catch (IOException e) {
-            showError("Export Error", "By Course export sırasında hata:\n" + e.getMessage());
+            showError("Export Error", "An error occurred during By Course export:\n" + e.getMessage());
         }
     }
 
@@ -373,11 +373,12 @@ public class ExamSchedulerApp extends Application {
                     schedule,
                     Paths.get("schedule_by_room.csv")
             );
-            showInfo("Export", "Schedule (By Room) CSV olarak kaydedildi.");
+            showInfo("Export", "Schedule (By Room) has been saved as a CSV file.");
         } catch (IOException e) {
-            showError("Export Error", "By Room export sırasında hata:\n" + e.getMessage());
+            showError("Export Error", "An error occurred during By Room export:\n" + e.getMessage());
         }
     }
+
 
     private void handleExportByStudent() {
         try {
@@ -385,11 +386,12 @@ public class ExamSchedulerApp extends Application {
                     schedule,
                     Paths.get("schedule_by_student.csv")
             );
-            showInfo("Export", "Schedule (By Student) CSV olarak kaydedildi.");
+            showInfo("Export", "Schedule (By Student) has been saved as a CSV file.");
         } catch (IOException e) {
-            showError("Export Error", "By Student export sırasında hata:\n" + e.getMessage());
+            showError("Export Error", "An error occurred during By Student export:\n" + e.getMessage());
         }
     }
+
 
     private void handleExportByDaySlot() {
         try {
@@ -397,11 +399,12 @@ public class ExamSchedulerApp extends Application {
                     schedule,
                     Paths.get("schedule_by_day_slot.csv")
             );
-            showInfo("Export", "Schedule (By Day/Slot) CSV olarak kaydedildi.");
+            showInfo("Export", "Schedule (By Day/Slot) has been saved as a CSV file.");
         } catch (IOException e) {
-            showError("Export Error", "By Day/Slot export sırasında hata:\n" + e.getMessage());
+            showError("Export Error", "An error occurred during By Day/Slot export:\n" + e.getMessage());
         }
     }
+
     private Tab createStudentManagementTab() {
         BorderPane root = new BorderPane();
 
@@ -554,10 +557,7 @@ public class ExamSchedulerApp extends Application {
     private Tab createStudentScheduleTab() {
 
         BorderPane root = new BorderPane();
-
-        // -------------------------------
-        // ÜST KISIM: ÖĞRENCİ SEÇME
-        // -------------------------------
+        // choosing a student
         ComboBox<String> studentBox = new ComboBox<>();
         studentBox.setPromptText("Select student");
         List<String> studentIds = new ArrayList<>(repo.getStudents().keySet());
@@ -577,9 +577,7 @@ public class ExamSchedulerApp extends Application {
         );
         root.setTop(top);
 
-        // -------------------------------
-        // ORTA KISIM: TABLO
-        // -------------------------------
+        //table
         TableView<StudentScheduleRow> table = new TableView<>();
         ObservableList<StudentScheduleRow> data = FXCollections.observableArrayList();
         table.setItems(data);
@@ -603,26 +601,23 @@ public class ExamSchedulerApp extends Application {
         root.setCenter(table);
 
         // When student is chosen, fill the table
-        // -------------------------------
         studentBox.setOnAction(e -> {
 
-            data.clear(); // önce tabloyu temizle
+            data.clear(); // clear the table first
 
             String studentId = studentBox.getValue();
             if (studentId == null) return;
 
             for (Exam exam : schedule.getAllExams()) {
 
-                // Bu öğrenci bu derse kayıtlı mı?
+                //is this student registered to this course
                 if (exam.getCourse().getStudentIds().contains(studentId)) {
 
-                    // Room ID'leri birleştir
                     String rooms = exam.getAssignedRooms()
                             .stream()
                             .map(Classroom::getRoomId)
                             .collect(Collectors.joining(","));
 
-                    // Tabloya satır ekle
                     data.add(new StudentScheduleRow(
                             studentId,                               // 1️⃣ studentId
                             exam.getCourse().getCourseCode(),        // 2️⃣ courseCode
@@ -636,9 +631,6 @@ public class ExamSchedulerApp extends Application {
             }
         });
 
-        // -------------------------------
-        // TAB
-        // -------------------------------
         Tab tab = new Tab("Student Schedule");
         tab.setClosable(false);
         tab.setContent(root);
@@ -669,7 +661,6 @@ public class ExamSchedulerApp extends Application {
         Button unregisterBtn = new Button("❌ Unregister");
         Button refreshBtn = new Button("🔄 Refresh");
 
-        // Tablo: hangi öğrenci hangi derste
         TableView<RegistrationRow> table = new TableView<>();
         ObservableList<RegistrationRow> data = FXCollections.observableArrayList();
         rebuildRegistrationData(data);
@@ -838,7 +829,7 @@ public class ExamSchedulerApp extends Application {
         HBox controls = createSlotControls();
 
         TableView<SlotConfigurationRow> slotTable = createSlotTable();
-        loadInitialSlotData();   // <-- Artık tabloyu repo’dan dolduruyoruz
+        loadInitialSlotData();
 
         mainLayout.getChildren().addAll(title, controls, slotTable);
 
