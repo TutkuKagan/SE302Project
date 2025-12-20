@@ -77,6 +77,8 @@ public class ExamSchedulerApp extends Application {
         tabPane.getTabs().add(createByRoomTab(this.schedule));
         tabPane.getTabs().add(createByStudentTab(this.schedule));
         tabPane.getTabs().add(createByDaySlotTab(this.schedule));
+        tabPane.getTabs().add(createStudentScheduleTab());
+
 
         BorderPane root = new BorderPane();
         root.setTop(createMenuBar());
@@ -347,6 +349,8 @@ public class ExamSchedulerApp extends Application {
         tabPane.getTabs().add(createByRoomTab(this.schedule));
         tabPane.getTabs().add(createByStudentTab(this.schedule));
         tabPane.getTabs().add(createByDaySlotTab(this.schedule));
+        tabPane.getTabs().add(createStudentScheduleTab());
+
 
         tabPane.getSelectionModel().select(selectedIndex);
     }
@@ -545,6 +549,106 @@ public class ExamSchedulerApp extends Application {
         tab.setClosable(false);
         return tab;
     }
+
+    private Tab createStudentScheduleTab() {
+
+        BorderPane root = new BorderPane();
+
+        // -------------------------------
+        // ÜST KISIM: ÖĞRENCİ SEÇME
+        // -------------------------------
+        ComboBox<String> studentBox = new ComboBox<>();
+        studentBox.setPromptText("Select student");
+        List<String> studentIds = new ArrayList<>(repo.getStudents().keySet());
+
+        studentIds.sort(Comparator.comparingInt(id -> {
+            String numberPart = id.replaceAll("\\D+", "");
+            return Integer.parseInt(numberPart);
+        }));
+
+        studentBox.getItems().addAll(studentIds);
+
+        VBox top = new VBox(10);
+        top.setPadding(new Insets(10));
+        top.getChildren().addAll(
+                new Label("Select a student:"),
+                studentBox
+        );
+        root.setTop(top);
+
+        // -------------------------------
+        // ORTA KISIM: TABLO
+        // -------------------------------
+        TableView<StudentScheduleRow> table = new TableView<>();
+        ObservableList<StudentScheduleRow> data = FXCollections.observableArrayList();
+        table.setItems(data);
+
+        TableColumn<StudentScheduleRow, String> c1 = new TableColumn<>("Course");
+        c1.setCellValueFactory(new PropertyValueFactory<>("courseCode"));
+
+        TableColumn<StudentScheduleRow, Integer> c2 = new TableColumn<>("Day");
+        c2.setCellValueFactory(new PropertyValueFactory<>("day"));
+
+        TableColumn<StudentScheduleRow, Integer> c3 = new TableColumn<>("Slot");
+        c3.setCellValueFactory(new PropertyValueFactory<>("slotIndex"));
+
+        TableColumn<StudentScheduleRow, String> c4 = new TableColumn<>("Time");
+        c4.setCellValueFactory(new PropertyValueFactory<>("timeRange"));
+
+        TableColumn<StudentScheduleRow, String> c5 = new TableColumn<>("Rooms");
+        c5.setCellValueFactory(new PropertyValueFactory<>("rooms"));
+
+        table.getColumns().addAll(c1, c2, c3, c4, c5);
+        root.setCenter(table);
+
+        // -------------------------------
+        // 🔴 ADIM 9 — ASIL OLAY BURASI
+        // Öğrenci seçilince tabloyu doldur
+        // -------------------------------
+        studentBox.setOnAction(e -> {
+
+            data.clear(); // önce tabloyu temizle
+
+            String studentId = studentBox.getValue();
+            if (studentId == null) return;
+
+            for (Exam exam : schedule.getAllExams()) {
+
+                // Bu öğrenci bu derse kayıtlı mı?
+                if (exam.getCourse().getStudentIds().contains(studentId)) {
+
+                    // Room ID'leri birleştir
+                    String rooms = exam.getAssignedRooms()
+                            .stream()
+                            .map(Classroom::getRoomId)
+                            .collect(Collectors.joining(","));
+
+                    // Tabloya satır ekle
+                    data.add(new StudentScheduleRow(
+                            studentId,                               // 1️⃣ studentId
+                            exam.getCourse().getCourseCode(),        // 2️⃣ courseCode
+                            exam.getSlot().getDay(),                 // 3️⃣ day
+                            exam.getSlot().getIndex(),               // 4️⃣ slot
+                            exam.getSlot().getTimeRange(),           // 5️⃣ time
+                            rooms                                    // 6️⃣ rooms
+                    ));
+
+                }
+            }
+        });
+
+        // -------------------------------
+        // TAB
+        // -------------------------------
+        Tab tab = new Tab("Student Schedule");
+        tab.setClosable(false);
+        tab.setContent(root);
+
+        return tab;
+    }
+
+
+
     private Tab createRegistrationManagementTab() {
         BorderPane root = new BorderPane();
 
@@ -957,7 +1061,6 @@ public class ExamSchedulerApp extends Application {
 
 
 
-
     private Tab createByCourseTab(Schedule schedule) {
 
         if (schedule == null) {
@@ -1040,6 +1143,8 @@ public class ExamSchedulerApp extends Application {
         tab.setClosable(false);
         return tab;
     }
+
+
 
 
     private Tab createByRoomTab(Schedule schedule) {
