@@ -79,7 +79,6 @@ public class ExamSchedulerApp extends Application {
         tabPane.getTabs().add(createByDaySlotTab(this.schedule));
         tabPane.getTabs().add(createStudentScheduleTab());
 
-
         BorderPane root = new BorderPane();
         root.setTop(createMenuBar());
         root.setCenter(tabPane);
@@ -139,7 +138,8 @@ public class ExamSchedulerApp extends Application {
 
         MenuItem exit = new MenuItem("Exit");
         exit.setOnAction(e -> {
-            if (primaryStage != null) primaryStage.close();
+            if (primaryStage != null)
+                primaryStage.close();
         });
 
         fileMenu.getItems().addAll(importAll, importSlotsOnly, new SeparatorMenuItem(), exit);
@@ -201,48 +201,163 @@ public class ExamSchedulerApp extends Application {
     }
 
     private void handleImportAll() {
-        Path s = chooseCsvFile("Select Students CSV", studentsPath);
-        if (s == null) return;
-        Path c = chooseCsvFile("Select Courses CSV", coursesPath);
-        if (c == null) return;
-        Path r = chooseCsvFile("Select Classrooms CSV", classroomsPath);
-        if (r == null) return;
-        Path a = chooseCsvFile("Select Registrations / Attendance CSV", registrationsPath);
-        if (a == null) return;
-        Path slots = chooseCsvFile("Select Slot Configuration CSV", slotConfigPath);
-        if (slots == null) return;
+        showImportDialog();
+    }
 
-        try {
-            this.studentsPath = s;
-            this.coursesPath = c;
-            this.classroomsPath = r;
-            this.registrationsPath = a;
-            this.slotConfigPath = slots;
+    private void showImportDialog() {
+        Dialog<Boolean> dialog = new Dialog<>();
+        dialog.setTitle("Import CSV Files");
+        dialog.setHeaderText("Select CSV files to import data.");
 
-            importService.importAll(s, c, r, a, slots);
+        ButtonType importButtonType = new ButtonType("Import", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(importButtonType, ButtonType.CANCEL);
 
-            // Try scheduling immediately.
-            this.schedule = new SchedulingEngine(repo).generateExamSchedule();
+        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20, 150, 10, 10));
 
-            updateAllViews();
-            showInfo("Import & Scheduling", "CSV files imported and schedule generated successfully.");
-            showInfo(
-                    "Import Completed",
-                    "CSV files have been imported successfully.\n\n" +
-                            "If no schedule is visible, please use:\n" +
-                            "Actions → Run / Re-run Scheduling"
-            );
+        TextField studentsField = new TextField();
+        studentsField.setPromptText("Students CSV");
+        if (studentsPath != null)
+            studentsField.setText(studentsPath.toAbsolutePath().toString());
 
-        } catch (Exception ex) {
-            this.schedule = null;
-            updateAllViews();
-            showError("Import/Scheduling Error", "Operation failed\n" + ex.getMessage());
+        TextField coursesField = new TextField();
+        coursesField.setPromptText("Courses CSV");
+        if (coursesPath != null)
+            coursesField.setText(coursesPath.toAbsolutePath().toString());
+
+        TextField classroomsField = new TextField();
+        classroomsField.setPromptText("Classrooms CSV");
+        if (classroomsPath != null)
+            classroomsField.setText(classroomsPath.toAbsolutePath().toString());
+
+        TextField registrationsField = new TextField();
+        registrationsField.setPromptText("Registrations CSV");
+        if (registrationsPath != null)
+            registrationsField.setText(registrationsPath.toAbsolutePath().toString());
+
+        TextField slotsField = new TextField();
+        slotsField.setPromptText("Slots CSV");
+        if (slotConfigPath != null)
+            slotsField.setText(slotConfigPath.toAbsolutePath().toString());
+
+        grid.add(new Label("Students:"), 0, 0);
+        grid.add(studentsField, 1, 0);
+        grid.add(createBrowseButton("Select Students CSV", studentsField), 2, 0);
+
+        grid.add(new Label("Courses:"), 0, 1);
+        grid.add(coursesField, 1, 1);
+        grid.add(createBrowseButton("Select Courses CSV", coursesField), 2, 1);
+
+        grid.add(new Label("Classrooms:"), 0, 2);
+        grid.add(classroomsField, 1, 2);
+        grid.add(createBrowseButton("Select Classrooms CSV", classroomsField), 2, 2);
+
+        grid.add(new Label("Registrations:"), 0, 3);
+        grid.add(registrationsField, 1, 3);
+        grid.add(createBrowseButton("Select Registrations CSV", registrationsField), 2, 3);
+
+        grid.add(new Label("Slots Config:"), 0, 4);
+        grid.add(slotsField, 1, 4);
+        grid.add(createBrowseButton("Select Slot Configuration CSV", slotsField), 2, 4);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // Enable/Disable import button validation
+        javafx.scene.Node loginButton = dialog.getDialogPane().lookupButton(importButtonType);
+        // simple validation: ensure fields are not empty
+        loginButton.setDisable(true);
+
+        javafx.beans.value.ChangeListener<String> validationListener = (observable, oldValue, newValue) -> {
+            boolean invalid = studentsField.getText().trim().isEmpty() ||
+                    coursesField.getText().trim().isEmpty() ||
+                    classroomsField.getText().trim().isEmpty() ||
+                    registrationsField.getText().trim().isEmpty() ||
+                    slotsField.getText().trim().isEmpty();
+            loginButton.setDisable(invalid);
+        };
+
+        studentsField.textProperty().addListener(validationListener);
+        coursesField.textProperty().addListener(validationListener);
+        classroomsField.textProperty().addListener(validationListener);
+        registrationsField.textProperty().addListener(validationListener);
+        slotsField.textProperty().addListener(validationListener);
+
+        // Trigger initial check
+        validationListener.changed(null, null, null);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == importButtonType) {
+                try {
+                    this.studentsPath = Paths.get(studentsField.getText().trim());
+                    this.coursesPath = Paths.get(coursesField.getText().trim());
+                    this.classroomsPath = Paths.get(classroomsField.getText().trim());
+                    this.registrationsPath = Paths.get(registrationsField.getText().trim());
+                    this.slotConfigPath = Paths.get(slotsField.getText().trim());
+                    return true;
+                } catch (Exception e) {
+                    return false;
+                }
+            }
+            return null;
+        });
+
+        Optional<Boolean> result = dialog.showAndWait();
+
+        if (result.isPresent() && result.get()) {
+            try {
+                importService.importAll(studentsPath, coursesPath, classroomsPath, registrationsPath, slotConfigPath);
+
+                // Try scheduling immediately.
+                this.schedule = new SchedulingEngine(repo).generateExamSchedule();
+
+                updateAllViews();
+                showInfo("Import & Scheduling", "CSV files imported and schedule generated successfully.");
+                showInfo(
+                        "Import Completed",
+                        "CSV files have been imported successfully.\n\n" +
+                                "If no schedule is visible, please use:\n" +
+                                "Actions → Run / Re-run Scheduling");
+
+            } catch (Exception ex) {
+                this.schedule = null;
+                updateAllViews();
+                showError("Import/Scheduling Error", "Operation failed\n" + ex.getMessage());
+            }
         }
+    }
+
+    private Button createBrowseButton(String title, TextField targetField) {
+        Button btn = new Button("Browse...");
+        btn.setOnAction(e -> {
+            FileChooser chooser = new FileChooser();
+            chooser.setTitle(title);
+            chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("CSV Files", "*.csv"));
+
+            String currentText = targetField.getText();
+            if (!currentText.isEmpty()) {
+                try {
+                    File f = new File(currentText);
+                    if (f.exists()) {
+                        chooser.setInitialDirectory(f.getParentFile());
+                    }
+                } catch (Exception ignored) {
+                }
+            }
+
+            File file = chooser.showOpenDialog(primaryStage);
+            if (file != null) {
+                targetField.setText(file.getAbsolutePath());
+            }
+        });
+        return btn;
     }
 
     private void handleImportSlotsOnly() {
         Path slots = chooseCsvFile("Select Slot Configuration CSV", slotConfigPath);
-        if (slots == null) return;
+        if (slots == null)
+            return;
 
         try {
             this.slotConfigPath = slots;
@@ -275,28 +390,29 @@ public class ExamSchedulerApp extends Application {
                 if (parent != null && parent.exists()) {
                     chooser.setInitialDirectory(parent);
                 }
-            } catch (Exception ignored) { }
+            } catch (Exception ignored) {
+            }
         }
 
         File file = chooser.showOpenDialog(primaryStage);
         return file == null ? null : file.toPath();
     }
+
     private void showHowToDialog() {
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle("How to use");
         alert.setHeaderText("Exam Scheduler - User Guide");
 
-        String msg =
-                "1) File > Import CSV Files...\n" +
-                        "   - Students, Courses, Classrooms, Registrations, Slot Config\n\n" +
-                        "2) Actions > Run / Re-run Scheduling\n" +
-                        "   - Generates a schedule respecting mandatory constraints\n\n" +
-                        "3) Slot Configuration tab\n" +
-                        "   - Edit day count & time ranges, save and re-run\n\n" +
-                        "4) By Course tab\n" +
-                        "   - You may edit Day/Slot; the system blocks constraint violations\n\n" +
-                        "5) Export menu\n" +
-                        "   - Export schedule views as CSV";
+        String msg = "1) File > Import CSV Files...\n" +
+                "   - Students, Courses, Classrooms, Registrations, Slot Config\n\n" +
+                "2) Actions > Run / Re-run Scheduling\n" +
+                "   - Generates a schedule respecting mandatory constraints\n\n" +
+                "3) Slot Configuration tab\n" +
+                "   - Edit day count & time ranges, save and re-run\n\n" +
+                "4) By Course tab\n" +
+                "   - You may edit Day/Slot; the system blocks constraint violations\n\n" +
+                "5) Export menu\n" +
+                "   - Export schedule views as CSV";
 
         TextArea ta = new TextArea(msg);
         ta.setEditable(false);
@@ -312,13 +428,12 @@ public class ExamSchedulerApp extends Application {
         alert.setTitle("Constraints");
         alert.setHeaderText("Mandatory constraints");
 
-        String msg =
-                "Hard constraints (never relaxed):\n" +
-                        "- A student cannot have 2 consecutive slots on the same day.\n" +
-                        "- A student cannot have more than 2 exams in a day.\n" +
-                        "- Same slot: common students cannot overlap.\n" +
-                        "- Same slot: a classroom cannot be assigned to 2 exams.\n\n" +
-                        "If no feasible schedule exists, the application reports 'No feasible schedule'.";
+        String msg = "Hard constraints (never relaxed):\n" +
+                "- A student cannot have 2 consecutive slots on the same day.\n" +
+                "- A student cannot have more than 2 exams in a day.\n" +
+                "- Same slot: common students cannot overlap.\n" +
+                "- Same slot: a classroom cannot be assigned to 2 exams.\n\n" +
+                "If no feasible schedule exists, the application reports 'No feasible schedule'.";
 
         TextArea ta = new TextArea(msg);
         ta.setEditable(false);
@@ -339,9 +454,6 @@ public class ExamSchedulerApp extends Application {
         alert.showAndWait();
     }
 
-
-
-
     private void updateAllViews() {
         BorderPane root = (BorderPane) dayCountSpinner.getScene().getRoot();
         root.setTop(createMenuBar());
@@ -358,7 +470,6 @@ public class ExamSchedulerApp extends Application {
         tabPane.getTabs().add(createByDaySlotTab(this.schedule));
         tabPane.getTabs().add(createStudentScheduleTab());
 
-
         tabPane.getSelectionModel().select(selectedIndex);
     }
 
@@ -366,8 +477,7 @@ public class ExamSchedulerApp extends Application {
         try {
             exportService.exportByCourse(
                     schedule,
-                    Paths.get("schedule_by_course.csv")
-            );
+                    Paths.get("schedule_by_course.csv"));
             showInfo("Export", "Schedule (By Course) has been saved as a CSV file.");
         } catch (IOException e) {
             showError("Export Error", "An error occurred during By Course export:\n" + e.getMessage());
@@ -378,34 +488,29 @@ public class ExamSchedulerApp extends Application {
         try {
             exportService.exportByRoom(
                     schedule,
-                    Paths.get("schedule_by_room.csv")
-            );
+                    Paths.get("schedule_by_room.csv"));
             showInfo("Export", "Schedule (By Room) has been saved as a CSV file.");
         } catch (IOException e) {
             showError("Export Error", "An error occurred during By Room export:\n" + e.getMessage());
         }
     }
 
-
     private void handleExportByStudent() {
         try {
             exportService.exportByStudent(
                     schedule,
-                    Paths.get("schedule_by_student.csv")
-            );
+                    Paths.get("schedule_by_student.csv"));
             showInfo("Export", "Schedule (By Student) has been saved as a CSV file.");
         } catch (IOException e) {
             showError("Export Error", "An error occurred during By Student export:\n" + e.getMessage());
         }
     }
 
-
     private void handleExportByDaySlot() {
         try {
             exportService.exportByDaySlot(
                     schedule,
-                    Paths.get("schedule_by_day_slot.csv")
-            );
+                    Paths.get("schedule_by_day_slot.csv"));
             showInfo("Export", "Schedule (By Day/Slot) has been saved as a CSV file.");
         } catch (IOException e) {
             showError("Export Error", "An error occurred during By Day/Slot export:\n" + e.getMessage());
@@ -467,8 +572,7 @@ public class ExamSchedulerApp extends Application {
         });
 
         Label info = new Label(
-                "Note: Students are updated in memory; you must re-run scheduling to generate a new exam schedule."
-        );
+                "Note: Students are updated in memory; you must re-run scheduling to generate a new exam schedule.");
         info.setWrapText(true);
 
         HBox buttons = new HBox(10,
@@ -484,6 +588,7 @@ public class ExamSchedulerApp extends Application {
         tab.setClosable(false);
         return tab;
     }
+
     private Tab createCourseManagementTab() {
         BorderPane root = new BorderPane();
 
@@ -580,11 +685,10 @@ public class ExamSchedulerApp extends Application {
         top.setPadding(new Insets(10));
         top.getChildren().addAll(
                 new Label("Select a student:"),
-                studentBox
-        );
+                studentBox);
         root.setTop(top);
 
-        //table
+        // table
         TableView<StudentScheduleRow> table = new TableView<>();
         ObservableList<StudentScheduleRow> data = FXCollections.observableArrayList();
         table.setItems(data);
@@ -613,11 +717,12 @@ public class ExamSchedulerApp extends Application {
             data.clear(); // clear the table first
 
             String studentId = studentBox.getValue();
-            if (studentId == null) return;
+            if (studentId == null)
+                return;
 
             for (Exam exam : schedule.getAllExams()) {
 
-                //is this student registered to this course
+                // is this student registered to this course
                 if (exam.getCourse().getStudentIds().contains(studentId)) {
 
                     String rooms = exam.getAssignedRooms()
@@ -626,12 +731,12 @@ public class ExamSchedulerApp extends Application {
                             .collect(Collectors.joining(","));
 
                     data.add(new StudentScheduleRow(
-                            studentId,                               // 1️⃣ studentId
-                            exam.getCourse().getCourseCode(),        // 2️⃣ courseCode
-                            exam.getSlot().getDay(),                 // 3️⃣ day
-                            exam.getSlot().getIndex(),               // 4️⃣ slot
-                            exam.getSlot().getTimeRange(),           // 5️⃣ time
-                            rooms                                    // 6️⃣ rooms
+                            studentId, // 1️⃣ studentId
+                            exam.getCourse().getCourseCode(), // 2️⃣ courseCode
+                            exam.getSlot().getDay(), // 3️⃣ day
+                            exam.getSlot().getIndex(), // 4️⃣ slot
+                            exam.getSlot().getTimeRange(), // 5️⃣ time
+                            rooms // 6️⃣ rooms
                     ));
 
                 }
@@ -644,8 +749,6 @@ public class ExamSchedulerApp extends Application {
 
         return tab;
     }
-
-
 
     private Tab createRegistrationManagementTab() {
         BorderPane root = new BorderPane();
@@ -722,7 +825,8 @@ public class ExamSchedulerApp extends Application {
                     break;
                 }
             }
-            if (toRemove != null) data.remove(toRemove);
+            if (toRemove != null)
+                data.remove(toRemove);
         });
 
         refreshBtn.setOnAction(e -> {
@@ -744,8 +848,7 @@ public class ExamSchedulerApp extends Application {
         controls.setPadding(new Insets(10));
 
         Label info = new Label(
-                "Note: Registration changes are reflected in the student lists of Course objects and can be used in re-running the schedule."
-        );
+                "Note: Registration changes are reflected in the student lists of Course objects and can be used in re-running the schedule.");
         info.setWrapText(true);
 
         VBox center = new VBox(10, table, info);
@@ -771,6 +874,7 @@ public class ExamSchedulerApp extends Application {
                 .comparing(RegistrationRow::getCourseCode)
                 .thenComparing(RegistrationRow::getStudentId));
     }
+
     private Tab createClassroomManagementTab() {
         BorderPane root = new BorderPane();
 
@@ -811,8 +915,7 @@ public class ExamSchedulerApp extends Application {
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
 
         Label info = new Label(
-                "Note: Classroom capacity changes are stored in memory; re-run scheduling if necessary."
-        );
+                "Note: Classroom capacity changes are stored in memory; re-run scheduling if necessary.");
         info.setWrapText(true);
 
         VBox vbox = new VBox(10, table, info);
@@ -822,9 +925,6 @@ public class ExamSchedulerApp extends Application {
         tab.setClosable(false);
         return tab;
     }
-
-
-
 
     private Tab createSlotConfigurationTab() {
         VBox mainLayout = new VBox(20);
@@ -845,19 +945,15 @@ public class ExamSchedulerApp extends Application {
         return tab;
     }
 
-
     private HBox createSlotControls() {
         HBox controls = new HBox(15);
-
 
         Label dayLabel = new Label("Total Exam Days:");
         this.dayCountSpinner = new Spinner<>(1, 10, 5);
         dayCountSpinner.setPrefWidth(70);
 
-
         Button addNewSlotButton = new Button("➕ Add New Slot");
         addNewSlotButton.setOnAction(e -> addNewSlotRow());
-
 
         Button saveButton = new Button("Save Configuration");
         saveButton.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white;");
@@ -874,7 +970,7 @@ public class ExamSchedulerApp extends Application {
         this.slotData = FXCollections.observableArrayList();
         table.setItems(this.slotData);
 
-       // Day column: for display purposes only, always set to 1
+        // Day column: for display purposes only, always set to 1
         TableColumn<SlotConfigurationRow, Integer> dayCol = new TableColumn<>("Day");
         dayCol.setCellValueFactory(new PropertyValueFactory<>("day"));
 
@@ -907,6 +1003,7 @@ public class ExamSchedulerApp extends Application {
                     getTableView().getItems().remove(row);
                 });
             }
+
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -919,7 +1016,6 @@ public class ExamSchedulerApp extends Application {
 
         return table;
     }
-
 
     private void loadInitialSlotData() {
         slotData.clear();
@@ -939,7 +1035,8 @@ public class ExamSchedulerApp extends Application {
         int maxDay = slots.stream().mapToInt(Slot::getDay).max().orElse(1);
         dayCountSpinner.getValueFactory().setValue(maxDay);
 
-        // Retrieve one time range per slot index (assuming all days share the same slots)
+        // Retrieve one time range per slot index (assuming all days share the same
+        // slots)
         Map<Integer, String> indexToRange = new TreeMap<>();
         for (Slot s : slots) {
             indexToRange.putIfAbsent(s.getIndex(), s.getTimeRange());
@@ -951,7 +1048,7 @@ public class ExamSchedulerApp extends Application {
 
             String[] parts = range.split("-");
             String start = parts.length > 0 ? parts[0].trim() : "";
-            String end   = parts.length > 1 ? parts[1].trim() : "";
+            String end = parts.length > 1 ? parts[1].trim() : "";
 
             slotData.add(new SlotConfigurationRow(1, slotIndex, start, end));
         }
@@ -964,7 +1061,6 @@ public class ExamSchedulerApp extends Application {
 
         slotData.add(new SlotConfigurationRow(1, nextSlotIndex, "00:00", "00:00"));
     }
-
 
     private void handleSaveConfiguration() {
         int numDays = dayCountSpinner.getValue();
@@ -999,7 +1095,8 @@ public class ExamSchedulerApp extends Application {
         List<Slot> newSlots = SlotGenerator.generateSlots(numDays, timeRanges);
         repo.setSlots(newSlots);
 
-        // 2) Rewrite the slot configuration CSV file in FR1 format (to the selected file)
+        // 2) Rewrite the slot configuration CSV file in FR1 format (to the selected
+        // file)
         java.nio.file.Path out = this.slotConfigPath;
         if (out == null) {
             FileChooser chooser = new FileChooser();
@@ -1058,12 +1155,11 @@ public class ExamSchedulerApp extends Application {
         alert.showAndWait();
     }
 
-
-
     private Tab createByCourseTab(Schedule schedule) {
 
         if (schedule == null) {
-            Tab tab = new Tab("By Course", new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
+            Tab tab = new Tab("By Course",
+                    new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
             tab.setClosable(false);
             return tab;
         }
@@ -1106,7 +1202,7 @@ public class ExamSchedulerApp extends Application {
                 // apply the change to the actual schedule
                 applyRowToSchedule(row);
             } else {
-                table.refresh(); //Revert to the previous state if invalid
+                table.refresh(); // Revert to the previous state if invalid
             }
         });
 
@@ -1122,7 +1218,7 @@ public class ExamSchedulerApp extends Application {
                 // apply the change to the actual schedule
                 applyRowToSchedule(row);
             } else {
-                table.refresh(); //Revert to the previous state if invalid
+                table.refresh(); // Revert to the previous state if invalid
             }
         });
 
@@ -1143,17 +1239,14 @@ public class ExamSchedulerApp extends Application {
         return tab;
     }
 
-
-
-
     private Tab createByRoomTab(Schedule schedule) {
 
         if (schedule == null) {
-            Tab tab = new Tab("By Room", new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
+            Tab tab = new Tab("By Room",
+                    new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
             tab.setClosable(false);
             return tab;
         }
-
 
         TableView<RoomScheduleRow> table = new TableView<>();
         ObservableList<RoomScheduleRow> items = FXCollections.observableArrayList();
@@ -1202,11 +1295,11 @@ public class ExamSchedulerApp extends Application {
     private Tab createByStudentTab(Schedule schedule) {
 
         if (schedule == null) {
-            Tab tab = new Tab("By Student", new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
+            Tab tab = new Tab("By Student",
+                    new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
             tab.setClosable(false);
             return tab;
         }
-
 
         TableView<StudentScheduleRow> table = new TableView<>();
         ObservableList<StudentScheduleRow> items = FXCollections.observableArrayList();
@@ -1259,11 +1352,11 @@ public class ExamSchedulerApp extends Application {
     private Tab createByDaySlotTab(Schedule schedule) {
 
         if (schedule == null) {
-            Tab tab = new Tab("By Day/Slot", new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
+            Tab tab = new Tab("By Day/Slot",
+                    new Label("No schedule loaded. Import CSV files and run scheduling from Actions menu."));
             tab.setClosable(false);
             return tab;
         }
-
 
         TableView<DaySlotScheduleRow> table = new TableView<>();
         ObservableList<DaySlotScheduleRow> items = FXCollections.observableArrayList();
@@ -1308,7 +1401,6 @@ public class ExamSchedulerApp extends Application {
         return tab;
     }
 
-
     private String joinRoomIds(List<Classroom> rooms) {
         return rooms.stream()
                 .map(Classroom::getRoomId)
@@ -1323,9 +1415,6 @@ public class ExamSchedulerApp extends Application {
         alert.showAndWait();
     }
 
-
-
-
     public static class CourseScheduleRow {
         private final String courseCode;
 
@@ -1336,7 +1425,7 @@ public class ExamSchedulerApp extends Application {
         private final int studentCount;
 
         public CourseScheduleRow(String courseCode, int day, int slotIndex,
-                                 String timeRange, String rooms, int studentCount) {
+                String timeRange, String rooms, int studentCount) {
             this.courseCode = courseCode;
 
             this.day = new SimpleIntegerProperty(day);
@@ -1346,20 +1435,45 @@ public class ExamSchedulerApp extends Application {
             this.studentCount = studentCount;
         }
 
-        public String getCourseCode() { return courseCode; }
+        public String getCourseCode() {
+            return courseCode;
+        }
 
+        public int getDay() {
+            return day.get();
+        }
 
-        public int getDay() { return day.get(); }
-        public SimpleIntegerProperty dayProperty() { return day; }
-        public void setDay(int newDay) { this.day.set(newDay); } // FR7 Setter
+        public SimpleIntegerProperty dayProperty() {
+            return day;
+        }
 
-        public int getSlotIndex() { return slotIndex.get(); }
-        public SimpleIntegerProperty slotIndexProperty() { return slotIndex; }
-        public void setSlotIndex(int newSlotIndex) { this.slotIndex.set(newSlotIndex); } // FR7 Setter
+        public void setDay(int newDay) {
+            this.day.set(newDay);
+        } // FR7 Setter
 
-        public String getTimeRange() { return timeRange; }
-        public String getRooms() { return rooms; }
-        public int getStudentCount() { return studentCount; }
+        public int getSlotIndex() {
+            return slotIndex.get();
+        }
+
+        public SimpleIntegerProperty slotIndexProperty() {
+            return slotIndex;
+        }
+
+        public void setSlotIndex(int newSlotIndex) {
+            this.slotIndex.set(newSlotIndex);
+        } // FR7 Setter
+
+        public String getTimeRange() {
+            return timeRange;
+        }
+
+        public String getRooms() {
+            return rooms;
+        }
+
+        public int getStudentCount() {
+            return studentCount;
+        }
     }
 
     public static class StudentRow {
@@ -1369,10 +1483,14 @@ public class ExamSchedulerApp extends Application {
             this.studentId = new SimpleStringProperty(studentId);
         }
 
-        public String getStudentId() { return studentId.get(); }
-        public SimpleStringProperty studentIdProperty() { return studentId; }
-    }
+        public String getStudentId() {
+            return studentId.get();
+        }
 
+        public SimpleStringProperty studentIdProperty() {
+            return studentId;
+        }
+    }
 
     public static class CourseRow {
         private final SimpleStringProperty courseCode;
@@ -1383,15 +1501,26 @@ public class ExamSchedulerApp extends Application {
             this.studentCount = new SimpleIntegerProperty(studentCount);
         }
 
-        public String getCourseCode() { return courseCode.get(); }
-        public SimpleStringProperty courseCodeProperty() { return courseCode; }
+        public String getCourseCode() {
+            return courseCode.get();
+        }
 
-        public int getStudentCount() { return studentCount.get(); }
-        public SimpleIntegerProperty studentCountProperty() { return studentCount; }
+        public SimpleStringProperty courseCodeProperty() {
+            return courseCode;
+        }
 
-        public void setStudentCount(int count) { this.studentCount.set(count); }
+        public int getStudentCount() {
+            return studentCount.get();
+        }
+
+        public SimpleIntegerProperty studentCountProperty() {
+            return studentCount;
+        }
+
+        public void setStudentCount(int count) {
+            this.studentCount.set(count);
+        }
     }
-
 
     public static class ClassroomRow {
         private final SimpleStringProperty roomId;
@@ -1402,13 +1531,25 @@ public class ExamSchedulerApp extends Application {
             this.capacity = new SimpleIntegerProperty(capacity);
         }
 
-        public String getRoomId() { return roomId.get(); }
-        public SimpleStringProperty roomIdProperty() { return roomId; }
+        public String getRoomId() {
+            return roomId.get();
+        }
 
-        public int getCapacity() { return capacity.get(); }
-        public SimpleIntegerProperty capacityProperty() { return capacity; }
+        public SimpleStringProperty roomIdProperty() {
+            return roomId;
+        }
 
-        public void setCapacity(int capacity) { this.capacity.set(capacity); }
+        public int getCapacity() {
+            return capacity.get();
+        }
+
+        public SimpleIntegerProperty capacityProperty() {
+            return capacity;
+        }
+
+        public void setCapacity(int capacity) {
+            this.capacity.set(capacity);
+        }
     }
 
     public static class RegistrationRow {
@@ -1420,19 +1561,31 @@ public class ExamSchedulerApp extends Application {
             this.courseCode = new SimpleStringProperty(courseCode);
         }
 
-        public String getStudentId() { return studentId.get(); }
-        public SimpleStringProperty studentIdProperty() { return studentId; }
+        public String getStudentId() {
+            return studentId.get();
+        }
 
-        public String getCourseCode() { return courseCode.get(); }
-        public SimpleStringProperty courseCodeProperty() { return courseCode; }
+        public SimpleStringProperty studentIdProperty() {
+            return studentId;
+        }
+
+        public String getCourseCode() {
+            return courseCode.get();
+        }
+
+        public SimpleStringProperty courseCodeProperty() {
+            return courseCode;
+        }
     }
 
     private void applyRowToSchedule(CourseScheduleRow row) {
-        if (schedule == null) return;
+        if (schedule == null)
+            return;
 
         String courseCode = row.getCourseCode();
         Exam exam = schedule.getExamByCourse(courseCode);
-        if (exam == null) return;
+        if (exam == null)
+            return;
 
         int newDay = row.getDay();
         int newSlotIndex = row.getSlotIndex();
@@ -1448,8 +1601,7 @@ public class ExamSchedulerApp extends Application {
         if (newSlot == null) {
             showError(
                     "Invalid Slot",
-                    "No slot found for Day " + newDay + ", Slot " + newSlotIndex + "."
-            );
+                    "No slot found for Day " + newDay + ", Slot " + newSlotIndex + ".");
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
@@ -1458,8 +1610,7 @@ public class ExamSchedulerApp extends Application {
         if (wouldCauseSameSlotStudentConflict(exam, newSlot)) {
             showError(
                     "Conflict",
-                    "Another exam with common students already exists in this slot (FR10 violation)."
-            );
+                    "Another exam with common students already exists in this slot (FR10 violation).");
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
@@ -1468,8 +1619,7 @@ public class ExamSchedulerApp extends Application {
         if (wouldCauseRoomConflict(exam, newSlot)) {
             showError(
                     "Conflict",
-                    "One or more classrooms are already assigned to another exam in this slot (room conflict)."
-            );
+                    "One or more classrooms are already assigned to another exam in this slot (room conflict).");
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
@@ -1478,8 +1628,7 @@ public class ExamSchedulerApp extends Application {
         if (wouldViolateConsecutiveConstraint(exam, newSlot)) {
             showError(
                     "Constraint Violation",
-                    "This change creates consecutive exams for some students."
-            );
+                    "This change creates consecutive exams for some students.");
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
@@ -1488,8 +1637,7 @@ public class ExamSchedulerApp extends Application {
         if (wouldViolateMaxTwoPerDayConstraint(exam, newSlot)) {
             showError(
                     "Constraint Violation",
-                    "This change creates more than two exams in a single day for some students."
-            );
+                    "This change creates more than two exams in a single day for some students.");
             row.setDay(exam.getSlot().getDay());
             row.setSlotIndex(exam.getSlot().getIndex());
             return;
@@ -1499,12 +1647,12 @@ public class ExamSchedulerApp extends Application {
         Platform.runLater(this::updateAllViews);
     }
 
-
     private boolean wouldCauseSameSlotStudentConflict(Exam movingExam, Slot newSlot) {
         Set<String> movingStudents = new HashSet<>(movingExam.getCourse().getStudentIds());
 
         for (Exam other : schedule.getAllExams()) {
-            if (other == movingExam) continue;
+            if (other == movingExam)
+                continue;
 
             if (other.getSlot().getDay() == newSlot.getDay()
                     && other.getSlot().getIndex() == newSlot.getIndex()) {
@@ -1526,7 +1674,8 @@ public class ExamSchedulerApp extends Application {
         }
 
         for (Exam other : schedule.getAllExams()) {
-            if (other == movingExam) continue;
+            if (other == movingExam)
+                continue;
 
             if (other.getSlot().getDay() == newSlot.getDay()
                     && other.getSlot().getIndex() == newSlot.getIndex()) {
@@ -1549,9 +1698,12 @@ public class ExamSchedulerApp extends Application {
 
         for (String studentId : movingExam.getCourse().getStudentIds()) {
             for (Exam other : schedule.getAllExams()) {
-                if (other == movingExam) continue;
-                if (!other.getCourse().getStudentIds().contains(studentId)) continue;
-                if (other.getSlot().getDay() != day) continue;
+                if (other == movingExam)
+                    continue;
+                if (!other.getCourse().getStudentIds().contains(studentId))
+                    continue;
+                if (other.getSlot().getDay() != day)
+                    continue;
 
                 int oIdx = other.getSlot().getIndex();
                 if (oIdx == prev || oIdx == next) {
@@ -1568,8 +1720,10 @@ public class ExamSchedulerApp extends Application {
         for (String studentId : movingExam.getCourse().getStudentIds()) {
             int count = 0;
             for (Exam other : schedule.getAllExams()) {
-                if (other == movingExam) continue;
-                if (!other.getCourse().getStudentIds().contains(studentId)) continue;
+                if (other == movingExam)
+                    continue;
+                if (!other.getCourse().getStudentIds().contains(studentId))
+                    continue;
                 if (other.getSlot().getDay() == day) {
                     count++;
                     if (count >= 2) {
@@ -1580,6 +1734,7 @@ public class ExamSchedulerApp extends Application {
         }
         return false;
     }
+
     public static class RoomScheduleRow {
         private final String roomId;
         private final int day;
@@ -1588,7 +1743,7 @@ public class ExamSchedulerApp extends Application {
         private final String courseCode;
 
         public RoomScheduleRow(String roomId, int day, int slotIndex,
-                               String timeRange, String courseCode) {
+                String timeRange, String courseCode) {
             this.roomId = roomId;
             this.day = day;
             this.slotIndex = slotIndex;
@@ -1596,11 +1751,25 @@ public class ExamSchedulerApp extends Application {
             this.courseCode = courseCode;
         }
 
-        public String getRoomId() { return roomId; }
-        public int getDay() { return day; }
-        public int getSlotIndex() { return slotIndex; }
-        public String getTimeRange() { return timeRange; }
-        public String getCourseCode() { return courseCode; }
+        public String getRoomId() {
+            return roomId;
+        }
+
+        public int getDay() {
+            return day;
+        }
+
+        public int getSlotIndex() {
+            return slotIndex;
+        }
+
+        public String getTimeRange() {
+            return timeRange;
+        }
+
+        public String getCourseCode() {
+            return courseCode;
+        }
     }
 
     public static class StudentScheduleRow {
@@ -1612,8 +1781,8 @@ public class ExamSchedulerApp extends Application {
         private final String rooms;
 
         public StudentScheduleRow(String studentId, String courseCode,
-                                  int day, int slotIndex,
-                                  String timeRange, String rooms) {
+                int day, int slotIndex,
+                String timeRange, String rooms) {
             this.studentId = studentId;
             this.courseCode = courseCode;
             this.day = day;
@@ -1622,12 +1791,29 @@ public class ExamSchedulerApp extends Application {
             this.rooms = rooms;
         }
 
-        public String getStudentId() { return studentId; }
-        public String getCourseCode() { return courseCode; }
-        public int getDay() { return day; }
-        public int getSlotIndex() { return slotIndex; }
-        public String getTimeRange() { return timeRange; }
-        public String getRooms() { return rooms; }
+        public String getStudentId() {
+            return studentId;
+        }
+
+        public String getCourseCode() {
+            return courseCode;
+        }
+
+        public int getDay() {
+            return day;
+        }
+
+        public int getSlotIndex() {
+            return slotIndex;
+        }
+
+        public String getTimeRange() {
+            return timeRange;
+        }
+
+        public String getRooms() {
+            return rooms;
+        }
     }
 
     public static class DaySlotScheduleRow {
@@ -1638,7 +1824,7 @@ public class ExamSchedulerApp extends Application {
         private final String rooms;
 
         public DaySlotScheduleRow(int day, int slotIndex,
-                                  String timeRange, String courseCode, String rooms) {
+                String timeRange, String courseCode, String rooms) {
             this.day = day;
             this.slotIndex = slotIndex;
             this.timeRange = timeRange;
@@ -1646,11 +1832,25 @@ public class ExamSchedulerApp extends Application {
             this.rooms = rooms;
         }
 
-        public int getDay() { return day; }
-        public int getSlotIndex() { return slotIndex; }
-        public String getTimeRange() { return timeRange; }
-        public String getCourseCode() { return courseCode; }
-        public String getRooms() { return rooms; }
+        public int getDay() {
+            return day;
+        }
+
+        public int getSlotIndex() {
+            return slotIndex;
+        }
+
+        public String getTimeRange() {
+            return timeRange;
+        }
+
+        public String getCourseCode() {
+            return courseCode;
+        }
+
+        public String getRooms() {
+            return rooms;
+        }
 
     }
 
@@ -1667,20 +1867,49 @@ public class ExamSchedulerApp extends Application {
             this.endTime = new SimpleStringProperty(endTime);
         }
 
-        public int getDay() { return day.get(); }
-        public SimpleIntegerProperty dayProperty() { return day; }
-        public void setDay(int day) { this.day.set(day); }
+        public int getDay() {
+            return day.get();
+        }
 
-        public int getSlotIndex() { return slotIndex.get(); }
-        public SimpleIntegerProperty slotIndexProperty() { return slotIndex; }
+        public SimpleIntegerProperty dayProperty() {
+            return day;
+        }
 
-        public String getStartTime() { return startTime.get(); }
-        public SimpleStringProperty startTimeProperty() { return startTime; }
-        public void setStartTime(String startTime) { this.startTime.set(startTime); }
+        public void setDay(int day) {
+            this.day.set(day);
+        }
 
-        public String getEndTime() { return endTime.get(); }
-        public SimpleStringProperty endTimeProperty() { return endTime; }
-        public void setEndTime(String endTime) { this.endTime.set(endTime); }
+        public int getSlotIndex() {
+            return slotIndex.get();
+        }
+
+        public SimpleIntegerProperty slotIndexProperty() {
+            return slotIndex;
+        }
+
+        public String getStartTime() {
+            return startTime.get();
+        }
+
+        public SimpleStringProperty startTimeProperty() {
+            return startTime;
+        }
+
+        public void setStartTime(String startTime) {
+            this.startTime.set(startTime);
+        }
+
+        public String getEndTime() {
+            return endTime.get();
+        }
+
+        public SimpleStringProperty endTimeProperty() {
+            return endTime;
+        }
+
+        public void setEndTime(String endTime) {
+            this.endTime.set(endTime);
+        }
     }
 
     public static void main(String[] args) {
