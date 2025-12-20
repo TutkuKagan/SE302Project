@@ -226,6 +226,13 @@ public class ExamSchedulerApp extends Application {
 
             updateAllViews();
             showInfo("Import & Scheduling", "CSV files imported and schedule generated successfully.");
+            showInfo(
+                    "Import Completed",
+                    "CSV files have been imported successfully.\n\n" +
+                            "If no schedule is visible, please use:\n" +
+                            "Actions → Run / Re-run Scheduling"
+            );
+
         } catch (Exception ex) {
             this.schedule = null;
             updateAllViews();
