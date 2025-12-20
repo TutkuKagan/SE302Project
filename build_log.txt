@@ -1,0 +1,50 @@
+﻿Initialized native services in: C:\Users\User\.gradle\native
+Initialized jansi services in: C:\Users\User\.gradle\native
+Found daemon DaemonInfo{pid=18968, address=[fd4fbc1a-6717-4683-a58e-510aeca3406e port:62698, addresses:[/127.0.0.1]], state=Idle, lastBusy=1766252783053, context=DefaultDaemonContext[uid=cb2c5b2d-861a-4901-ba9f-7ba86215b887,javaHome=C:\Users\User\.antigravity\extensions\redhat.java-1.50.0-win32-x64\jre\21.0.9-win32-x86_64,javaVersion=21,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\User\.gradle\daemon,pid=18968,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=384m,-XX:+HeapDumpOnOutOfMemoryError,-Xms256m,-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=TR,-Duser.language=tr,-Duser.variant]} however its context does not match the desired criteria.
+JVM is incompatible.
+Wanted: DaemonRequestContext{jvmCriteria=C:\Program Files\Java\jdk-21 (no JDK specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=384m, -XX:+HeapDumpOnOutOfMemoryError, -Xms256m, -Xmx512m, -Dfile.encoding=UTF-8, -Duser.country=TR, -Duser.language=tr, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=cb2c5b2d-861a-4901-ba9f-7ba86215b887,javaHome=C:\Users\User\.antigravity\extensions\redhat.java-1.50.0-win32-x64\jre\21.0.9-win32-x86_64,javaVersion=21,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\User\.gradle\daemon,pid=18968,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=384m,-XX:+HeapDumpOnOutOfMemoryError,-Xms256m,-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=TR,-Duser.language=tr,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 19472). The daemon log file: C:\Users\User\.gradle\daemon\8.13\daemon-19472.out.log
+Starting 10th build in daemon [uptime: 45 mins 57.288 secs, performance: 100%, GC rate: 0.00/s, heap usage: 2% of 512 MiB, non-heap usage: 22% of 384 MiB]
+Using 12 worker leases.
+Now considering [C:\Users\User\SE302Project] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Settings evaluated using settings file 'C:\Users\User\SE302Project\settings.gradle'.
+Projects loaded. Root project using build file 'C:\Users\User\SE302Project\build.gradle'.
+Included projects: [root project 'SE302Project']
+
+> Configure project :
+Evaluating root project 'SE302Project' using build file 'C:\Users\User\SE302Project\build.gradle'.
+Resolved plugin [id: 'java']
+Resolved plugin [id: 'application']
+Resolved plugin [id: 'org.openjfx.javafxplugin', version: '0.1.0']
+------------------------------------------------------------------------
+Detecting the operating system and CPU architecture
+------------------------------------------------------------------------
+os.detected.name=windows
+os.detected.arch=x86_64
+os.detected.bitness=64
+os.detected.version=10.0
+os.detected.version.major=10
+os.detected.version.minor=0
+os.detected.classifier=windows-x86_64
+All projects evaluated.
+Task name matched 'compileJava'
+Selected primary task 'compileJava' from project :
+Tasks to be executed: [task ':compileJava']
+Tasks that were excluded: []
+Resolve mutations for :compileJava (Thread[#555,Execution worker,5,main]) started.
+:compileJava (Thread[#555,Execution worker,5,main]) started.
+
+> Task :compileJava UP-TO-DATE
+Caching disabled for task ':compileJava' because:
+  Build cache is disabled
+Skipping task ':compileJava' as it is up-to-date.
+
+BUILD SUCCESSFUL in 579ms
+1 actionable task: 1 up-to-date
+Watched directory hierarchies: [C:\Users\User\SE302Project]

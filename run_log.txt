@@ -1,0 +1,94 @@
+﻿Initialized native services in: C:\Users\User\.gradle\native
+Initialized jansi services in: C:\Users\User\.gradle\native
+Found daemon DaemonInfo{pid=18968, address=[fd4fbc1a-6717-4683-a58e-510aeca3406e port:62698, addresses:[/127.0.0.1]], state=Idle, lastBusy=1766252783053, context=DefaultDaemonContext[uid=cb2c5b2d-861a-4901-ba9f-7ba86215b887,javaHome=C:\Users\User\.antigravity\extensions\redhat.java-1.50.0-win32-x64\jre\21.0.9-win32-x86_64,javaVersion=21,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\User\.gradle\daemon,pid=18968,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=384m,-XX:+HeapDumpOnOutOfMemoryError,-Xms256m,-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=TR,-Duser.language=tr,-Duser.variant]} however its context does not match the desired criteria.
+JVM is incompatible.
+Wanted: DaemonRequestContext{jvmCriteria=C:\Program Files\Java\jdk-21 (no JDK specified, using current Java home), daemonOpts=[-XX:MaxMetaspaceSize=384m, -XX:+HeapDumpOnOutOfMemoryError, -Xms256m, -Xmx512m, -Dfile.encoding=UTF-8, -Duser.country=TR, -Duser.language=tr, -Duser.variant], applyInstrumentationAgent=true, nativeServicesMode=ENABLED, priority=NORMAL}
+Actual: DefaultDaemonContext[uid=cb2c5b2d-861a-4901-ba9f-7ba86215b887,javaHome=C:\Users\User\.antigravity\extensions\redhat.java-1.50.0-win32-x64\jre\21.0.9-win32-x86_64,javaVersion=21,javaVendor=Eclipse Adoptium,daemonRegistryDir=C:\Users\User\.gradle\daemon,pid=18968,idleTimeout=10800000,priority=NORMAL,applyInstrumentationAgent=true,nativeServicesMode=ENABLED,daemonOpts=-XX:MaxMetaspaceSize=384m,-XX:+HeapDumpOnOutOfMemoryError,-Xms256m,-Xmx512m,-Dfile.encoding=UTF-8,-Duser.country=TR,-Duser.language=tr,-Duser.variant]
+
+  Looking for a different daemon...
+The client will now receive all logging from the daemon (pid: 19472). The daemon log file: C:\Users\User\.gradle\daemon\8.13\daemon-19472.out.log
+Starting 11th build in daemon [uptime: 46 mins 28.939 secs, performance: 100%, GC rate: 0.00/s, heap usage: 2% of 512 MiB, non-heap usage: 22% of 384 MiB]
+Using 12 worker leases.
+Now considering [C:\Users\User\SE302Project] as hierarchies to watch
+Watching the file system is configured to be enabled if available
+File system watching is active
+Starting Build
+Settings evaluated using settings file 'C:\Users\User\SE302Project\settings.gradle'.
+Projects loaded. Root project using build file 'C:\Users\User\SE302Project\build.gradle'.
+Included projects: [root project 'SE302Project']
+
+> Configure project :
+Evaluating root project 'SE302Project' using build file 'C:\Users\User\SE302Project\build.gradle'.
+Resolved plugin [id: 'java']
+Resolved plugin [id: 'application']
+Resolved plugin [id: 'org.openjfx.javafxplugin', version: '0.1.0']
+------------------------------------------------------------------------
+Detecting the operating system and CPU architecture
+------------------------------------------------------------------------
+os.detected.name=windows
+os.detected.arch=x86_64
+os.detected.bitness=64
+os.detected.version=10.0
+os.detected.version.major=10
+os.detected.version.minor=0
+os.detected.classifier=windows-x86_64
+All projects evaluated.
+Task name matched 'clean'
+Task name matched 'run'
+Selected primary task 'clean' from project :
+Selected primary task 'run' from project :
+Tasks to be executed: [task ':clean', task ':compileJava', task ':processResources', task ':classes', task ':run']
+Tasks that were excluded: []
+Resolve mutations for :clean (Thread[#598,Execution worker,5,main]) started.
+:clean (Thread[#598,Execution worker,5,main]) started.
+destroyer locations for task group 0 (Thread[#599,Execution worker Thread 2,5,main]) started.
+
+> Task :clean
+Caching disabled for task ':clean' because:
+  Build cache is disabled
+Task ':clean' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Resolve mutations for :compileJava (Thread[#598,Execution worker,5,main]) started.
+:compileJava (Thread[#598,Execution worker,5,main]) started.
+
+> Task :compileJava
+Caching disabled for task ':compileJava' because:
+  Build cache is disabled
+Task ':compileJava' is not up-to-date because:
+  Output property 'destinationDirectory' file C:\Users\User\SE302Project\build\classes\java\main has been removed.
+  Output property 'destinationDirectory' file C:\Users\User\SE302Project\build\classes\java\main\Classroom.class has been removed.
+  Output property 'destinationDirectory' file C:\Users\User\SE302Project\build\classes\java\main\Course.class has been removed.
+  and more...
+The input changes require a full rebuild for incremental task ':compileJava'.
+Compilation mode: in-process compilation
+Full recompilation is required because no incremental change information is available. This is usually caused by clean builds or changing compiler arguments.
+Compiling with toolchain 'C:\Program Files\Java\jdk-21'.
+Compiling with JDK Java compiler API.
+Class dependency analysis for incremental compilation took 0.005 secs.
+Created classpath snapshot for incremental compilation in 0.002 secs.
+Resolve mutations for :processResources (Thread[#598,Execution worker,5,main]) started.
+:processResources (Thread[#598,Execution worker,5,main]) started.
+
+> Task :processResources NO-SOURCE
+Skipping task ':processResources' as it has no source files and no previous output files.
+Resolve mutations for :classes (Thread[#598,Execution worker,5,main]) started.
+:classes (Thread[#598,Execution worker,5,main]) started.
+
+> Task :classes
+Skipping task ':classes' as it has no actions.
+Resolve mutations for :run (Thread[#598,Execution worker,5,main]) started.
+:run (Thread[#598,Execution worker,5,main]) started.
+
+> Task :run
+Caching disabled for task ':run' because:
+  Build cache is disabled
+Task ':run' is not up-to-date because:
+  Task has not declared any outputs despite executing actions.
+Starting process 'command 'C:\Program Files\Java\jdk-21\bin\java.exe''. Working directory: C:\Users\User\SE302Project Command: C:\Program Files\Java\jdk-21\bin\java.exe --module-path C:\Users\User\.gradle\caches\modules-2\files-2.1\org.openjfx\javafx-fxml\21\4a1cd270e1ae03ae73110eb68622afd457c6f903\javafx-fxml-21-win.jar;C:\Users\User\.gradle\caches\modules-2\files-2.1\org.openjfx\javafx-controls\21\76e295d84578a3d9688e092aae3f2ff1cf3e83a9\javafx-controls-21-win.jar;C:\Users\User\.gradle\caches\modules-2\files-2.1\org.openjfx\javafx-graphics\21\8083d97ea236079c82cf8e3463b62990340346d4\javafx-graphics-21-win.jar;C:\Users\User\.gradle\caches\modules-2\files-2.1\org.openjfx\javafx-base\21\a7e334fbb619859e1010cad06ddcf16e774c87a0\javafx-base-21-win.jar --add-modules javafx.controls,javafx.fxml,javafx.graphics -Dfile.encoding=UTF-8 -Duser.country=TR -Duser.language=tr -Duser.variant -cp C:\Users\User\SE302Project\build\classes\java\main;C:\Users\User\SE302Project\build\resources\main;C:\Users\User\.gradle\caches\modules-2\files-2.1\com.opencsv\opencsv\5.9\284ea0b60a24b71a530100783185e7d547ab5339\opencsv-5.9.jar;C:\Users\User\.gradle\caches\modules-2\files-2.1\org.apache.commons\commons-text\1.11.0\2bb044b7717ec2eccaf9ea7769c1509054b50e9a\commons-text-1.11.0.jar;C:\Users\User\.gradle\caches\modules-2\files-2.1\org.apache.commons\commons-lang3\3.13.0\b7263237aa89c1f99b327197c41d0669707a462e\commons-lang3-3.13.0.jar;C:\Users\User\.gradle\caches\modules-2\files-2.1\commons-beanutils\commons-beanutils\1.9.4\d52b9abcd97f38c81342bb7e7ae1eee9b73cba51\commons-beanutils-1.9.4.jar;C:\Users\User\.gradle\caches\modules-2\files-2.1\org.apache.commons\commons-collections4\4.4\62ebe7544cb7164d87e0637a2a6a2bdc981395e8\commons-collections4-4.4.jar;C:\Users\User\.gradle\caches\modules-2\files-2.1\commons-logging\commons-logging\1.2\4bfc12adfe4842bf07b657f0369c4cb522955686\commons-logging-1.2.jar;C:\Users\User\.gradle\caches\modules-2\files-2.1\commons-collections\commons-collections\3.2.2\8ad72fe39fa8c91eaaf12aadb21e0c3661fe26d5\commons-collections-3.2.2.jar ExamSchedulerApp
+Successfully started process 'command 'C:\Program Files\Java\jdk-21\bin\java.exe''
+
+[Incubating] Problems report is available at: file:///C:/Users/User/SE302Project/build/reports/problems/problems-report.html
+
+BUILD SUCCESSFUL in 1m 45s
+3 actionable tasks: 3 executed
+Watched directory hierarchies: [C:\Users\User\SE302Project]

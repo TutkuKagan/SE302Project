@@ -7,20 +7,18 @@ public class Main {
 
     public static void main(String[] args) {
 
-
         DataRepository repo = new DataRepository();
         CsvImportService importService = new CsvImportService(repo);
 
         try {
 
-            //  CSV IMPORT
+            // CSV IMPORT
             importService.importAll(
                     Paths.get("sampleData_AllStudents.csv"),
                     Paths.get("sampleData_AllCourses.csv"),
                     Paths.get("sampleData_AllClassroomsAndTheirCapacities.csv"),
                     Paths.get("sampleData_AllAttendanceLists.csv"),
-                    Paths.get("sampleData_slot_config.csv")
-            );
+                    Paths.get("sampleData_slot_config.csv"));
 
             System.out.println("Courses: " + repo.getCourses().size());
             System.out.println("Students: " + repo.getStudents().size());
@@ -43,29 +41,17 @@ public class Main {
 
                 System.out.println("Export completed.");
 
-                StudentScheduleService studentScheduleService =
-                        new StudentScheduleService(repo);
-
+                StudentScheduleService studentScheduleService = new StudentScheduleService(repo);
 
                 for (String studentId : repo.getStudents().keySet()) {
                     studentScheduleService.printScheduleForStudent(studentId, schedule);
                     System.out.println();
                 }
 
-
             } catch (RuntimeException e) {
 
-
-                System.out.println("No feasible schedule found.");
-                System.out.println("Suggested relaxations:");
-
-                for (RelaxationSuggestion r : engine.suggestRelaxations()) {
-                    System.out.println(
-                            r.getType() + " → " + r.getExplanation()
-                    );
-                }
+                System.out.println("No feasible schedule found. Please adjust constraints or slots.");
             }
-
         } catch (IOException e) {
             throw new RuntimeException("Error while importing/exporting CSV data", e);
         }
