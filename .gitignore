@@ -2,6 +2,10 @@
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
+.idea/
+*.iml
+*.iws
+*.ipr
 
 ### Eclipse ###
 .apt_generated
@@ -20,6 +24,7 @@ bin/
 /nbbuild/
 /dist/
 /nbdist/
+/nbproject/
 /.nb-gradle/
 
 ### VS Code ###
@@ -27,3 +32,7 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Gradle ###
+.gradle/
+build/

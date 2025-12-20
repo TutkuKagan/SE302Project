@@ -1,0 +1,29 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group = 'com.example'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.opencsv:opencsv:5.9'
+}
+
+javafx {
+    version = "21"
+    modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.graphics' ]
+}
+
+application {
+    mainClass = 'ExamSchedulerApp'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
