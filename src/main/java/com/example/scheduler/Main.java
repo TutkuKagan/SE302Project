@@ -1,7 +1,14 @@
-import javafx.application.Application;
+package com.example.scheduler;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+
+import com.example.scheduler.model.DataRepository;
+import com.example.scheduler.model.Schedule;
+import com.example.scheduler.service.CsvExportService;
+import com.example.scheduler.service.CsvImportService;
+import com.example.scheduler.service.SchedulingEngine;
+import com.example.scheduler.service.StudentScheduleService;
 
 public class Main {
 
@@ -13,12 +20,9 @@ public class Main {
         try {
 
             // CSV IMPORT
-            importService.importAll(
-                    Paths.get("sampleData_AllStudents.csv"),
-                    Paths.get("sampleData_AllCourses.csv"),
+            importService.importAll(Paths.get("sampleData_AllStudents.csv"), Paths.get("sampleData_AllCourses.csv"),
                     Paths.get("sampleData_AllClassroomsAndTheirCapacities.csv"),
-                    Paths.get("sampleData_AllAttendanceLists.csv"),
-                    Paths.get("sampleData_slot_config.csv"));
+                    Paths.get("sampleData_AllAttendanceLists.csv"), Paths.get("sampleData_slot_config.csv"));
 
             System.out.println("Courses: " + repo.getCourses().size());
             System.out.println("Students: " + repo.getStudents().size());

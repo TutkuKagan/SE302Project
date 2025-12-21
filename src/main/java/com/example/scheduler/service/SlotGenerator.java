@@ -1,3 +1,7 @@
+package com.example.scheduler.service;
+
+import com.example.scheduler.model.Slot;
+
 import java.util.ArrayList;
 import java.util.List;
 

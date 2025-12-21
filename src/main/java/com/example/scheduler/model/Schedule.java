@@ -1,8 +1,8 @@
+package com.example.scheduler.model;
+
 import java.util.*;
 
-
 public class Schedule {
-
 
     private final Map<String, Exam> examsByCourse = new HashMap<>();
 

@@ -1,3 +1,5 @@
+package com.example.scheduler.model;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,10 +16,21 @@ public class CoursePart {
         this.room = room;
     }
 
-    public Course getCourse() { return course; }
-    public Slot getSlot() { return slot; }
-    public Classroom getRoom() { return room; }
-    public List<String> getStudentIds() { return studentIds; }
+    public Course getCourse() {
+        return course;
+    }
+
+    public Slot getSlot() {
+        return slot;
+    }
+
+    public Classroom getRoom() {
+        return room;
+    }
+
+    public List<String> getStudentIds() {
+        return studentIds;
+    }
 
     public void addStudent(String studentId) {
         studentIds.add(studentId);

@@ -1,3 +1,6 @@
+package com.example.scheduler.service;
+
+import com.example.scheduler.model.*;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -6,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-
 public class CsvExportService {
 
     private final DataRepository repo;
@@ -14,7 +16,6 @@ public class CsvExportService {
     public CsvExportService(DataRepository repo) {
         this.repo = repo;
     }
-
 
     // Schedule by Course
     public void exportByCourse(Schedule schedule, Path out) throws IOException {
@@ -37,8 +38,7 @@ public class CsvExportService {
         Files.write(out, lines, StandardCharsets.UTF_8);
     }
 
-
-    //Schedule by Room
+    // Schedule by Room
     public void exportByRoom(Schedule schedule, Path out) throws IOException {
         List<String> lines = new ArrayList<>();
         lines.add("RoomId;Day;SlotIndex;TimeRange;CourseCode");
@@ -56,7 +56,6 @@ public class CsvExportService {
 
         Files.write(out, lines, StandardCharsets.UTF_8);
     }
-
 
     // Schedule by Student
     public void exportByStudent(Schedule schedule, Path out) throws IOException {
@@ -91,7 +90,6 @@ public class CsvExportService {
     public void exportByDaySlot(Schedule schedule, Path out) throws IOException {
         List<String> lines = new ArrayList<>();
         lines.add("Day;SlotIndex;TimeRange;RoomId;CourseCode");
-
 
         for (Slot slot : repo.getSlots()) {
             for (Exam e : schedule.getAllExams()) {

@@ -1,9 +1,12 @@
+package com.example.scheduler.model;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import com.example.scheduler.service.SlotGenerator;
 
 public class DataRepository {
 
@@ -11,6 +14,7 @@ public class DataRepository {
     private Map<String, Course> courses = new HashMap<>();
     private List<Classroom> classrooms = new ArrayList<>();
     private List<Slot> slots = new ArrayList<>();
+
     public List<Slot> getSlots() {
         return slots;
     }
@@ -20,7 +24,7 @@ public class DataRepository {
     }
 
     public void loadAll(Path studentsCSV, Path coursesCSV,
-                        Path classroomsCSV, Path registrationsCSV) throws IOException {
+            Path classroomsCSV, Path registrationsCSV) throws IOException {
 
         // Clear them first
         students.clear();
@@ -55,11 +59,19 @@ public class DataRepository {
         }
     }
 
-    public Map<String, Course> getCourses() { return courses; }
-    public Map<String, Student> getStudents() { return students; }
-    public List<Classroom> getClassrooms() { return classrooms; }
+    public Map<String, Course> getCourses() {
+        return courses;
+    }
 
-    //Returns all courses a given student is registered to.
+    public Map<String, Student> getStudents() {
+        return students;
+    }
+
+    public List<Classroom> getClassrooms() {
+        return classrooms;
+    }
+
+    // Returns all courses a given student is registered to.
 
     public List<Course> getCoursesOfStudent(String studentId) {
         List<Course> result = new ArrayList<>();
@@ -72,13 +84,14 @@ public class DataRepository {
         return result;
     }
 
-    //Checks whether two courses conflict by sharing at least one student.
+    // Checks whether two courses conflict by sharing at least one student.
 
     public boolean coursesConflict(String courseA, String courseB) {
         Course c1 = courses.get(courseA);
         Course c2 = courses.get(courseB);
 
-        if (c1 == null || c2 == null) return false;
+        if (c1 == null || c2 == null)
+            return false;
 
         // Check if there is any shared student ID
         for (String s : c1.getStudentIds()) {
@@ -89,7 +102,6 @@ public class DataRepository {
         return false; // No shared students
     }
 
-
     public List<Student> loadStudents(Path path) throws IOException {
         List<Student> list = new ArrayList<>();
 
@@ -97,7 +109,8 @@ public class DataRepository {
         boolean first = true;
         for (String line : lines) {
             String trimmed = line.trim();
-            if (trimmed.isEmpty()) continue;
+            if (trimmed.isEmpty())
+                continue;
 
             if (first) {
 
@@ -117,7 +130,8 @@ public class DataRepository {
         boolean first = true;
         for (String line : lines) {
             String trimmed = line.trim();
-            if (trimmed.isEmpty()) continue;
+            if (trimmed.isEmpty())
+                continue;
 
             if (first) {
 
@@ -137,7 +151,8 @@ public class DataRepository {
         boolean first = true;
         for (String line : lines) {
             String trimmed = line.trim();
-            if (trimmed.isEmpty()) continue;
+            if (trimmed.isEmpty())
+                continue;
 
             if (first) {
 
@@ -172,7 +187,7 @@ public class DataRepository {
      */
     public Map<String, Course> loadCourseRegistrations(Path path) throws IOException {
         Map<String, Course> courseMap = new HashMap<>();
-        //to have an easy control, we use BufferedReader
+        // to have an easy control, we use BufferedReader
         try (BufferedReader br = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
             String line;
 
@@ -186,7 +201,7 @@ public class DataRepository {
                 if (line.startsWith("CourseCode_")) {
                     String courseCode = line;
 
-                    //To find the student list belongs to this course
+                    // To find the student list belongs to this course
                     String listLine = null;
                     while ((listLine = br.readLine()) != null) {
                         listLine = listLine.trim();
@@ -214,7 +229,8 @@ public class DataRepository {
 
                     for (String token : tokens) {
                         String id = token.trim();
-                        if (id.isEmpty()) continue;
+                        if (id.isEmpty())
+                            continue;
                         // Like now the id = "Std_ID_170"
                         course.addStudent(id);
                     }
@@ -224,11 +240,13 @@ public class DataRepository {
 
         return courseMap;
     }
+
     public void loadSlots(Path slotConfigCsv) throws IOException {
         List<String> lines = Files.readAllLines(slotConfigCsv, StandardCharsets.UTF_8);
         for (String line : lines) {
             String trimmed = line.trim();
-            if (trimmed.isEmpty() || trimmed.startsWith("#")) continue;
+            if (trimmed.isEmpty() || trimmed.startsWith("#"))
+                continue;
 
             String[] parts = trimmed.split(";");
             int numDays = Integer.parseInt(parts[0].trim());
@@ -243,12 +261,11 @@ public class DataRepository {
         }
     }
 
-
-
-    //   FR3
-    //------------------------------------------------------------------------------------------------------------------
+    // FR3
+    // ------------------------------------------------------------------------------------------------------------------
     public boolean addStudent(String studentId) {
-        if (studentId == null || studentId.trim().isEmpty()) return false;
+        if (studentId == null || studentId.trim().isEmpty())
+            return false;
         if (students.containsKey(studentId)) {
             return false;
         }
@@ -262,7 +279,6 @@ public class DataRepository {
         }
         students.remove(studentId);
 
-
         for (Course c : courses.values()) {
             c.getStudentIds().remove(studentId);
         }
@@ -270,7 +286,8 @@ public class DataRepository {
     }
 
     public boolean addCourse(String courseCode) {
-        if (courseCode == null || courseCode.trim().isEmpty()) return false;
+        if (courseCode == null || courseCode.trim().isEmpty())
+            return false;
         if (courses.containsKey(courseCode)) {
             return false;
         }
@@ -315,7 +332,8 @@ public class DataRepository {
     }
 
     public boolean updateClassroomCapacity(String roomId, int newCapacity) {
-        if (newCapacity <= 0) return false;
+        if (newCapacity <= 0)
+            return false;
 
         for (Classroom room : classrooms) {
             if (room.getRoomId().equals(roomId)) {
@@ -325,7 +343,6 @@ public class DataRepository {
         }
         return false;
     }
-    //------------------------------------------------------------------------------------------------------------------
-
+    // ------------------------------------------------------------------------------------------------------------------
 
 }

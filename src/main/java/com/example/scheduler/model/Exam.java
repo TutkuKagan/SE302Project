@@ -1,3 +1,5 @@
+package com.example.scheduler.model;
+
 import java.util.List;
 
 public class Exam {
@@ -20,7 +22,9 @@ public class Exam {
         return slot;
     }
 
-    public void setSlot(Slot slot) { this.slot = slot; }
+    public void setSlot(Slot slot) {
+        this.slot = slot;
+    }
 
     public List<Classroom> getAssignedRooms() {
         return assignedRooms;

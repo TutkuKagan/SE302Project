@@ -1,3 +1,5 @@
+package com.example.scheduler.model;
+
 import java.util.Objects;
 
 public class Slot {
@@ -34,8 +36,10 @@ public class Slot {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Slot)) return false;
+        if (this == o)
+            return true;
+        if (!(o instanceof Slot))
+            return false;
         Slot slot = (Slot) o;
         return day == slot.day && index == slot.index;
     }

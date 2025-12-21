@@ -1,7 +1,15 @@
+package com.example.scheduler.service;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import com.example.scheduler.model.Classroom;
+import com.example.scheduler.model.DataRepository;
+import com.example.scheduler.model.Exam;
+import com.example.scheduler.model.Schedule;
+import com.example.scheduler.model.Student;
 
 public class StudentScheduleService {
 
@@ -10,7 +18,6 @@ public class StudentScheduleService {
     public StudentScheduleService(DataRepository repo) {
         this.repo = repo;
     }
-
 
     public List<Exam> getScheduleForStudent(String studentId, Schedule schedule) {
 
@@ -22,11 +29,9 @@ public class StudentScheduleService {
             }
         }
 
-
         exams.sort(Comparator
                 .comparing((Exam e) -> e.getSlot().getDay())
-                .thenComparing(e -> e.getSlot().getIndex())
-        );
+                .thenComparing(e -> e.getSlot().getIndex()));
 
         return exams;
     }
@@ -59,8 +64,7 @@ public class StudentScheduleService {
                             " | Slot " + e.getSlot().getIndex() +
                             " (" + e.getSlot().getTimeRange() + ")" +
                             " | Course: " + e.getCourse().getCourseCode() +
-                            " | Room(s): " + rooms
-            );
+                            " | Room(s): " + rooms);
         }
     }
 }

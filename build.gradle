@@ -21,7 +21,7 @@ javafx {
 }
 
 application {
-    mainClass = 'ExamSchedulerApp'
+    mainClass = 'com.example.scheduler.ExamSchedulerApp'
 }
 
 tasks.withType(JavaCompile) {

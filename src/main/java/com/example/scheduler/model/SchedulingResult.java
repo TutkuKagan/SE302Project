@@ -1,4 +1,7 @@
+package com.example.scheduler.model;
+
 import java.util.ArrayList;
+
 import java.util.List;
 
 public class SchedulingResult {
@@ -10,14 +13,20 @@ public class SchedulingResult {
         this.schedule = schedule;
     }
 
-    public Schedule getSchedule() { return schedule; }
+    public Schedule getSchedule() {
+        return schedule;
+    }
 
-    public List<String> getRelaxations() { return relaxations; }
+    public List<String> getRelaxations() {
+        return relaxations;
+    }
 
     public void addRelaxation(String explanation, int penalty) {
         this.relaxations.add(explanation);
         this.penaltyScore += penalty;
     }
 
-    public int getPenaltyScore() { return penaltyScore; }
+    public int getPenaltyScore() {
+        return penaltyScore;
+    }
 }

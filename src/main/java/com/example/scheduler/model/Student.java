@@ -1,3 +1,5 @@
+package com.example.scheduler.model;
+
 public class Student {
     private String studentId;
 
@@ -5,5 +7,7 @@ public class Student {
         this.studentId = studentId;
     }
 
-    public String getStudentId() { return studentId; }
+    public String getStudentId() {
+        return studentId;
+    }
 }

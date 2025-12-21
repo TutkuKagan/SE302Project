@@ -1,3 +1,6 @@
+package com.example.scheduler.service;
+
+import com.example.scheduler.model.*;
 import java.util.*;
 
 public class SchedulingEngine {
