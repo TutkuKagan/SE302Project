@@ -5,6 +5,10 @@ import com.example.scheduler.model.CourseRow;
 import com.example.scheduler.model.DataRepository;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 
 import java.util.Comparator;
 
@@ -34,26 +38,32 @@ public class CourseController {
     }
 
     public boolean addCourse(String code, int studentCount) {
-        // Note: Adding a course manually here.
-        // The original App might not have supported adding student count directly?
-        // Let's check the view logic.
-        // Assuming we just create a course.
+
+        if (code == null || code.trim().isEmpty()) return false;
+        code = code.trim();
+
+
         if (repo.getCourses().containsKey(code)) {
             return false;
         }
-        // How to set student count?
-        // The original code probably just created a course with empty students?
-        // or set a dummy count?
-        // Detailed check of view logic needed.
+            //WE ARE ADDING RANDOM STUDENTS TO THE NEWLY ADDED COURSE.
         repo.addCourse(code);
 
-        // If the user input implies student count, we might need to simulate students?
-        // For now, let's assume 0 students.
+        int n = Math.max(0, studentCount); // in the usage part, we are setting count as 40. We could implement a manual input for the count if needed
+        List<String> ids = new ArrayList<>(repo.getStudents().keySet());
+        Collections.shuffle(ids);
 
-        courseList.add(new CourseRow(code, 0));
+        int take = Math.min(n, ids.size());
+        for (int i = 0; i < take; i++) {
+            repo.registerStudentToCourse(ids.get(i), code);
+        }
+
+
+        courseList.add(new CourseRow(code, take));
         courseList.sort(Comparator.comparing(CourseRow::getCourseCode));
         return true;
     }
+
 
     public boolean removeCourse(CourseRow row) {
         if (row == null)

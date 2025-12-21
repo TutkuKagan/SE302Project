@@ -85,15 +85,10 @@ public class ScheduleController {
 
     // --- Constraint Checking Logic (Moved from App) ---
 
-    public boolean updateExamSlot(Exam exam, Slot newSlot, boolean force) {
+    public boolean updateExamSlot(Exam exam, Slot newSlot) {
         if (exam == null || newSlot == null)
             return false;
-
-        // If not forcing, check constraints?
-        // Logic for UI usually checks constraints BEFORE calling this, or this returns
-        // validation result?
-        // Let's assume validation is done by caller using public wouldViolate methods.
-
+        // Already checking constraints in the if slots
         exam.setSlot(newSlot);
         return true;
     }

@@ -4,11 +4,11 @@ import java.util.Objects;
 
 public class Slot {
 
-    // Exam day index (1, 2, 3, ...)
+
     private int day;
-    // Slot number inside that day
+
     private int index;
-    // Time range string, e.g. "09:00-11:00"
+
     private String timeRange;
 
     public Slot(int day, int index, String timeRange) {

@@ -44,7 +44,7 @@ public class CourseTabView {
                 showError("Invalid Course Code", "Course code cannot be empty.");
                 return;
             }
-            boolean ok = controller.addCourse(code, 0);
+            boolean ok = controller.addCourse(code, 40);
             if (!ok) {
                 showError("Add Failed", "A course with this code already exists.");
                 return;

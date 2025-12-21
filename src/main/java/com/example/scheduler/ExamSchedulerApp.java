@@ -623,8 +623,9 @@ public class ExamSchedulerApp extends Application {
         alert.setContentText(message);
         alert.showAndWait();
         if (statusLabel != null)
-            statusLabel.setText("Error: " + message.replace("\n", " "));
+            statusLabel.setText(message.replace("\n", " "));
     }
+
 
     private void showError(String title, String message) {
         Alert alert = new Alert(AlertType.ERROR);

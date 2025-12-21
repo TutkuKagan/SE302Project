@@ -161,12 +161,10 @@ public class ScheduleByCourseView {
             return;
         }
 
-        boolean ok = controller.updateExamSlot(exam, newSlot, false);
+        boolean ok = controller.updateExamSlot(exam, newSlot);
         if (ok) {
+            //all good
             row.setTimeRange(newSlot.getTimeRange());
-            // No need to updateAllViews here immediately since we are just inside this tab.
-            // But ideally we should notify App?
-            // For now, simple table refresh is enough for this view.
             table.refresh();
         }
     }

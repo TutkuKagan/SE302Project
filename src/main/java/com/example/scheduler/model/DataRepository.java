@@ -174,17 +174,7 @@ public class DataRepository {
         return list;
     }
 
-    /**
-     * sampleData_AllAttendanceLists.csv format:
-     *
-     * CourseCode_01
-     * ['Std_ID_170', 'Std_ID_077', ..., 'Std_ID_168']
-     *
-     * CourseCode_02
-     * ['Std_ID_238', 'Std_ID_132', ..., 'Std_ID_058']
-     *
-     * ...
-     */
+
     public Map<String, Course> loadCourseRegistrations(Path path) throws IOException {
         Map<String, Course> courseMap = new HashMap<>();
         // to have an easy control, we use BufferedReader
